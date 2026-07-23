@@ -1,19 +1,30 @@
 from fastapi import FastAPI, Depends, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
+from datetime import datetime
+
 import auth
 import models
 import schemas
 from database import engine, get_db
 
-# Veritabanı tablolarını oluştur (ilk çalıştırmada devgym.db dosyası oluşur)
+# Create database tables (creates devgym.db on first run)
 models.Base.metadata.create_all(bind=engine)
 
 app = FastAPI(title="DevGym API")
 
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:3000"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 
 @app.get("/")
 def read_root():
-    return {"message": "DevGym API çalışıyor"}
+    return {"message": "DevGym API is running"}
 
 
 # ---------- Users ----------
@@ -22,9 +33,8 @@ def read_root():
 def create_user(user: schemas.UserCreate, db: Session = Depends(get_db)):
     existing = db.query(models.User).filter(models.User.email == user.email).first()
     if existing:
-        raise HTTPException(status_code=400, detail="Bu email zaten kayıtlı")
+        raise HTTPException(status_code=400, detail="This email is already registered")
 
-    
     new_user = models.User(
         email=user.email,
         password_hash=auth.hash_password(user.password),
@@ -44,13 +54,14 @@ def create_user(user: schemas.UserCreate, db: Session = Depends(get_db)):
 def list_users(db: Session = Depends(get_db)):
     return db.query(models.User).all()
 
+
 # ---------- Projects ----------
 
 @app.post("/projects", response_model=schemas.ProjectOut)
 def create_project(project: schemas.ProjectCreate, owner_id: str, db: Session = Depends(get_db)):
     owner = db.query(models.User).filter(models.User.id == owner_id).first()
     if not owner:
-        raise HTTPException(status_code=404, detail="Kullanıcı bulunamadı")
+        raise HTTPException(status_code=404, detail="User not found")
 
     new_project = models.Project(
         owner_id=owner_id,
@@ -76,7 +87,7 @@ def list_projects(db: Session = Depends(get_db)):
 def create_position(project_id: str, position: schemas.PositionCreate, db: Session = Depends(get_db)):
     project = db.query(models.Project).filter(models.Project.id == project_id).first()
     if not project:
-        raise HTTPException(status_code=404, detail="Proje bulunamadı")
+        raise HTTPException(status_code=404, detail="Project not found")
 
     new_position = models.Position(
         project_id=project_id,
@@ -94,22 +105,19 @@ def list_positions(project_id: str, db: Session = Depends(get_db)):
     return db.query(models.Position).filter(models.Position.project_id == project_id).all()
 
 
-from datetime import datetime
-
-
 # ---------- Applications ----------
 
 @app.post("/applications", response_model=schemas.ApplicationOut)
 def create_application(application: schemas.ApplicationCreate, db: Session = Depends(get_db)):
     position = db.query(models.Position).filter(models.Position.id == application.position_id).first()
     if not position:
-        raise HTTPException(status_code=404, detail="Pozisyon bulunamadı")
+        raise HTTPException(status_code=404, detail="Position not found")
     if position.status != models.PositionStatus.open:
-        raise HTTPException(status_code=400, detail="Bu pozisyon şu anda dolu")
+        raise HTTPException(status_code=400, detail="This position is currently filled")
 
     user = db.query(models.User).filter(models.User.id == application.user_id).first()
     if not user:
-        raise HTTPException(status_code=404, detail="Kullanıcı bulunamadı")
+        raise HTTPException(status_code=404, detail="User not found")
 
     new_application = models.Application(
         position_id=application.position_id,
@@ -130,11 +138,11 @@ def list_applications(db: Session = Depends(get_db)):
 def accept_application(application_id: str, db: Session = Depends(get_db)):
     application = db.query(models.Application).filter(models.Application.id == application_id).first()
     if not application:
-        raise HTTPException(status_code=404, detail="Başvuru bulunamadı")
+        raise HTTPException(status_code=404, detail="Application not found")
 
     position = db.query(models.Position).filter(models.Position.id == application.position_id).first()
     if position.status != models.PositionStatus.open:
-        raise HTTPException(status_code=400, detail="Bu pozisyon artık açık değil")
+        raise HTTPException(status_code=400, detail="This position is no longer open")
 
     application.status = models.ApplicationStatus.accepted
 
@@ -156,7 +164,7 @@ def accept_application(application_id: str, db: Session = Depends(get_db)):
 def reject_application(application_id: str, db: Session = Depends(get_db)):
     application = db.query(models.Application).filter(models.Application.id == application_id).first()
     if not application:
-        raise HTTPException(status_code=404, detail="Başvuru bulunamadı")
+        raise HTTPException(status_code=404, detail="Application not found")
 
     application.status = models.ApplicationStatus.rejected
     db.commit()
@@ -175,25 +183,27 @@ def list_team_members(project_id: str, db: Session = Depends(get_db)):
 def leave_team(member_id: str, db: Session = Depends(get_db)):
     member = db.query(models.TeamMember).filter(models.TeamMember.id == member_id).first()
     if not member:
-        raise HTTPException(status_code=404, detail="Takım üyeliği bulunamadı")
+        raise HTTPException(status_code=404, detail="Team membership not found")
     if member.left_at is not None:
-        raise HTTPException(status_code=400, detail="Bu üye zaten ayrılmış")
+        raise HTTPException(status_code=400, detail="This member has already left")
 
     member.left_at = datetime.utcnow()
 
     position = db.query(models.Position).filter(models.Position.id == member.position_id).first()
-    position.status = models.PositionStatus.open  # handoff mekaniği burada devreye giriyor
+    position.status = models.PositionStatus.open  # handoff mechanic triggers here
 
     db.commit()
     db.refresh(member)
     return member
+
+
 # ---------- Auth ----------
 
 @app.post("/login")
 def login(email: str, password: str, db: Session = Depends(get_db)):
     user = db.query(models.User).filter(models.User.email == email).first()
     if not user or not auth.verify_password(password, user.password_hash):
-        raise HTTPException(status_code=401, detail="Email veya şifre hatalı")
+        raise HTTPException(status_code=401, detail="Incorrect email or password")
 
     token = auth.create_access_token(data={"sub": user.id})
     return {"access_token": token, "token_type": "bearer", "user_id": user.id}
