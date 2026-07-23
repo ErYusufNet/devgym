@@ -2,7 +2,7 @@ from datetime import datetime
 from typing import Optional, List
 from pydantic import BaseModel, EmailStr
 
-from models import ExperienceLevel, PlanType, ProjectStatus, PositionStatus, ApplicationStatus
+from models import ExperienceLevel, PlanType, ProjectStatus, ProjectType, PositionStatus, ApplicationStatus
 
 
 # ---------- User ----------
@@ -39,6 +39,10 @@ class ProjectCreate(BaseModel):
     description: Optional[str] = None
     tech_stack: Optional[List[str]] = []
     github_repo_url: Optional[str] = None
+    project_type: Optional[ProjectType] = None
+    duration_weeks: Optional[int] = None
+    weekly_hours: Optional[int] = None
+    timezone: Optional[str] = None
 
 
 class ProjectOut(BaseModel):
@@ -49,6 +53,10 @@ class ProjectOut(BaseModel):
     tech_stack: List[str]
     github_repo_url: Optional[str]
     status: ProjectStatus
+    project_type: Optional[ProjectType]
+    duration_weeks: Optional[int]
+    weekly_hours: Optional[int]
+    timezone: Optional[str]
     created_at: datetime
 
     class Config:
@@ -90,6 +98,7 @@ class ApplicationOut(BaseModel):
 
     class Config:
         from_attributes = True
+
 
 # ---------- Team Member ----------
 

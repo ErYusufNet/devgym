@@ -2,7 +2,7 @@ import uuid
 from datetime import datetime
 
 from sqlalchemy import (
-    Column, String, Text, DateTime, ForeignKey, Enum
+    Column, String, Text, DateTime, ForeignKey, Enum, Integer
 )
 from sqlalchemy.dialects.sqlite import JSON
 from sqlalchemy.orm import relationship
@@ -32,6 +32,16 @@ class ProjectStatus(str, enum.Enum):
     active = "active"
     completed = "completed"
     archived = "archived"
+
+
+class ProjectType(str, enum.Enum):
+    web = "web"
+    mobile = "mobile"
+    saas = "saas"
+    desktop = "desktop"
+    api = "api"
+    game = "game"
+    testing = "testing"
 
 
 class PositionStatus(str, enum.Enum):
@@ -72,6 +82,10 @@ class Project(Base):
     tech_stack = Column(JSON, default=list)
     github_repo_url = Column(String)
     status = Column(Enum(ProjectStatus), default=ProjectStatus.active)
+    project_type = Column(Enum(ProjectType))
+    duration_weeks = Column(Integer)
+    weekly_hours = Column(Integer)
+    timezone = Column(String)
     created_at = Column(DateTime, default=datetime.utcnow)
 
     owner = relationship("User", back_populates="projects")

@@ -69,6 +69,10 @@ def create_project(project: schemas.ProjectCreate, owner_id: str, db: Session = 
         description=project.description,
         tech_stack=project.tech_stack,
         github_repo_url=project.github_repo_url,
+        project_type=project.project_type,
+        duration_weeks=project.duration_weeks,
+        weekly_hours=project.weekly_hours,
+        timezone=project.timezone,
     )
     db.add(new_project)
     db.commit()
