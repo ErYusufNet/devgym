@@ -1,36 +1,78 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app).
+# DevGym
 
-## Getting Started
+Build real experience on real teams.
 
-First, run the development server:
+DevGym helps unemployed and early-career developers gain real team
+experience by collaborating on non-commercial software projects.
+Publish a project, build a team, ship it together on GitHub.
 
+## Status
+
+Early MVP, under active development.
+
+## Tech stack
+
+**Backend**
+- FastAPI (Python)
+- SQLAlchemy + SQLite (dev database)
+- JWT auth with bcrypt password hashing
+
+**Frontend**
+- Next.js (App Router)
+- React
+- TailwindCSS
+
+## Features so far
+
+- User registration and login (JWT-based)
+- Project creation with tech stack, type, duration, weekly hours, timezone
+- Open positions per project
+- Applications to positions
+- Team membership, with automatic position reopening when a member leaves
+  (the "handoff" mechanic — the core idea behind DevGym)
+- Landing page, register/login pages, and a project discovery feed
+
+## Project structure
+
+devgym/
+├── backend/
+│ ├── main.py # API routes
+│ ├── models.py # SQLAlchemy models
+│ ├── schemas.py # Pydantic request/response schemas
+│ ├── database.py # DB connection setup
+│ ├── auth.py # Password hashing + JWT
+│ └── requirements.txt
+├── frontend/
+│ └── src/app/
+│ ├── page.js # Landing page
+│ ├── login/page.js
+│ ├── register/page.js
+│ └── discover/page.js # Project feed
+
+
+## Running locally
+
+**Backend**
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+cd backend
+venv\Scripts\Activate.ps1
+uvicorn main:app --reload
 ```
+Runs on http://127.0.0.1:8000 — interactive API docs at `/docs`.
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+**Frontend**
+```bash
+cd frontend
+npm run dev
+```
+Runs on http://localhost:3000
 
-You can start editing the page by modifying `app/page.js`. The page auto-updates as you edit the file.
+Both servers need to be running at the same time for the app to work.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Roadmap
 
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- [ ] Project detail page (positions, apply button)
+- [ ] User profile page
+- [ ] Basic skill-based matching / filtering
+- [ ] Project creation form (currently API-only)
+- [ ] Deployment
