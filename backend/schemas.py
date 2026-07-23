@@ -1,0 +1,92 @@
+from datetime import datetime
+from typing import Optional, List
+from pydantic import BaseModel, EmailStr
+
+from models import ExperienceLevel, PlanType, ProjectStatus, PositionStatus, ApplicationStatus
+
+
+# ---------- User ----------
+
+class UserCreate(BaseModel):
+    email: EmailStr
+    password: str
+    full_name: Optional[str] = None
+    skills: Optional[List[str]] = []
+    experience_level: Optional[ExperienceLevel] = None
+    github_username: Optional[str] = None
+    availability: Optional[str] = None
+
+
+class UserOut(BaseModel):
+    id: str
+    email: EmailStr
+    full_name: Optional[str]
+    skills: List[str]
+    experience_level: Optional[ExperienceLevel]
+    github_username: Optional[str]
+    availability: Optional[str]
+    plan: PlanType
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
+# ---------- Project ----------
+
+class ProjectCreate(BaseModel):
+    title: str
+    description: Optional[str] = None
+    tech_stack: Optional[List[str]] = []
+    github_repo_url: Optional[str] = None
+
+
+class ProjectOut(BaseModel):
+    id: str
+    owner_id: str
+    title: str
+    description: Optional[str]
+    tech_stack: List[str]
+    github_repo_url: Optional[str]
+    status: ProjectStatus
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
+# ---------- Position ----------
+
+class PositionCreate(BaseModel):
+    role_name: str
+    description: Optional[str] = None
+
+
+class PositionOut(BaseModel):
+    id: str
+    project_id: str
+    role_name: str
+    description: Optional[str]
+    status: PositionStatus
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
+# ---------- Application ----------
+
+class ApplicationCreate(BaseModel):
+    position_id: str
+    user_id: str
+
+
+class ApplicationOut(BaseModel):
+    id: str
+    position_id: str
+    user_id: str
+    status: ApplicationStatus
+    applied_at: datetime
+
+    class Config:
+        from_attributes = True
