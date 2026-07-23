@@ -92,3 +92,98 @@ def create_position(project_id: str, position: schemas.PositionCreate, db: Sessi
 @app.get("/projects/{project_id}/positions", response_model=list[schemas.PositionOut])
 def list_positions(project_id: str, db: Session = Depends(get_db)):
     return db.query(models.Position).filter(models.Position.project_id == project_id).all()
+
+
+from datetime import datetime
+
+
+# ---------- Applications ----------
+
+@app.post("/applications", response_model=schemas.ApplicationOut)
+def create_application(application: schemas.ApplicationCreate, db: Session = Depends(get_db)):
+    position = db.query(models.Position).filter(models.Position.id == application.position_id).first()
+    if not position:
+        raise HTTPException(status_code=404, detail="Pozisyon bulunamadı")
+    if position.status != models.PositionStatus.open:
+        raise HTTPException(status_code=400, detail="Bu pozisyon şu anda dolu")
+
+    user = db.query(models.User).filter(models.User.id == application.user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="Kullanıcı bulunamadı")
+
+    new_application = models.Application(
+        position_id=application.position_id,
+        user_id=application.user_id,
+    )
+    db.add(new_application)
+    db.commit()
+    db.refresh(new_application)
+    return new_application
+
+
+@app.get("/applications", response_model=list[schemas.ApplicationOut])
+def list_applications(db: Session = Depends(get_db)):
+    return db.query(models.Application).all()
+
+
+@app.post("/applications/{application_id}/accept", response_model=schemas.ApplicationOut)
+def accept_application(application_id: str, db: Session = Depends(get_db)):
+    application = db.query(models.Application).filter(models.Application.id == application_id).first()
+    if not application:
+        raise HTTPException(status_code=404, detail="Başvuru bulunamadı")
+
+    position = db.query(models.Position).filter(models.Position.id == application.position_id).first()
+    if position.status != models.PositionStatus.open:
+        raise HTTPException(status_code=400, detail="Bu pozisyon artık açık değil")
+
+    application.status = models.ApplicationStatus.accepted
+
+    new_member = models.TeamMember(
+        project_id=position.project_id,
+        user_id=application.user_id,
+        position_id=position.id,
+    )
+    db.add(new_member)
+
+    position.status = models.PositionStatus.filled
+
+    db.commit()
+    db.refresh(application)
+    return application
+
+
+@app.post("/applications/{application_id}/reject", response_model=schemas.ApplicationOut)
+def reject_application(application_id: str, db: Session = Depends(get_db)):
+    application = db.query(models.Application).filter(models.Application.id == application_id).first()
+    if not application:
+        raise HTTPException(status_code=404, detail="Başvuru bulunamadı")
+
+    application.status = models.ApplicationStatus.rejected
+    db.commit()
+    db.refresh(application)
+    return application
+
+
+# ---------- Team Members ----------
+
+@app.get("/projects/{project_id}/team", response_model=list[schemas.TeamMemberOut])
+def list_team_members(project_id: str, db: Session = Depends(get_db)):
+    return db.query(models.TeamMember).filter(models.TeamMember.project_id == project_id).all()
+
+
+@app.post("/team_members/{member_id}/leave", response_model=schemas.TeamMemberOut)
+def leave_team(member_id: str, db: Session = Depends(get_db)):
+    member = db.query(models.TeamMember).filter(models.TeamMember.id == member_id).first()
+    if not member:
+        raise HTTPException(status_code=404, detail="Takım üyeliği bulunamadı")
+    if member.left_at is not None:
+        raise HTTPException(status_code=400, detail="Bu üye zaten ayrılmış")
+
+    member.left_at = datetime.utcnow()
+
+    position = db.query(models.Position).filter(models.Position.id == member.position_id).first()
+    position.status = models.PositionStatus.open  # handoff mekaniği burada devreye giriyor
+
+    db.commit()
+    db.refresh(member)
+    return member

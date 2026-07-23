@@ -90,3 +90,16 @@ class ApplicationOut(BaseModel):
 
     class Config:
         from_attributes = True
+
+# ---------- Team Member ----------
+
+class TeamMemberOut(BaseModel):
+    id: str
+    project_id: str
+    user_id: str
+    position_id: str
+    joined_at: datetime
+    left_at: Optional[datetime] = None
+
+    class Config:
+        from_attributes = True
