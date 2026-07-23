@@ -1,6 +1,6 @@
 from fastapi import FastAPI, Depends, HTTPException
 from sqlalchemy.orm import Session
-
+import auth
 import models
 import schemas
 from database import engine, get_db
@@ -24,10 +24,10 @@ def create_user(user: schemas.UserCreate, db: Session = Depends(get_db)):
     if existing:
         raise HTTPException(status_code=400, detail="Bu email zaten kayıtlı")
 
-    # NOT: şimdilik şifreyi düz kaydediyoruz, bir sonraki adımda hashleyeceğiz
+    
     new_user = models.User(
         email=user.email,
-        password_hash=user.password,
+        password_hash=auth.hash_password(user.password),
         full_name=user.full_name,
         skills=user.skills,
         experience_level=user.experience_level,
@@ -187,3 +187,13 @@ def leave_team(member_id: str, db: Session = Depends(get_db)):
     db.commit()
     db.refresh(member)
     return member
+# ---------- Auth ----------
+
+@app.post("/login")
+def login(email: str, password: str, db: Session = Depends(get_db)):
+    user = db.query(models.User).filter(models.User.email == email).first()
+    if not user or not auth.verify_password(password, user.password_hash):
+        raise HTTPException(status_code=401, detail="Email veya şifre hatalı")
+
+    token = auth.create_access_token(data={"sub": user.id})
+    return {"access_token": token, "token_type": "bearer", "user_id": user.id}
