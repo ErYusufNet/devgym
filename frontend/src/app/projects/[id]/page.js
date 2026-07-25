@@ -9,30 +9,67 @@ export default function ProjectDetail() {
   const [positions, setPositions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [applyingTo, setApplyingTo] = useState(null);
+  const [message, setMessage] = useState("");
 
   useEffect(() => {
-    async function fetchData() {
-      try {
-        const [projectRes, positionsRes] = await Promise.all([
-          fetch(`http://127.0.0.1:8000/projects/${id}`),
-          fetch(`http://127.0.0.1:8000/projects/${id}/positions`),
-        ]);
-
-        if (!projectRes.ok) throw new Error("Project not found");
-
-        const projectData = await projectRes.json();
-        const positionsData = await positionsRes.json();
-
-        setProject(projectData);
-        setPositions(positionsData);
-      } catch (err) {
-        setError(err.message);
-      } finally {
-        setLoading(false);
-      }
-    }
     fetchData();
   }, [id]);
+
+  async function fetchData() {
+    try {
+      const [projectRes, positionsRes] = await Promise.all([
+        fetch(`http://127.0.0.1:8000/projects/${id}`),
+        fetch(`http://127.0.0.1:8000/projects/${id}/positions`),
+      ]);
+
+      if (!projectRes.ok) throw new Error("Project not found");
+
+      const projectData = await projectRes.json();
+      const positionsData = await positionsRes.json();
+
+      setProject(projectData);
+      setPositions(positionsData);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function handleApply(positionId) {
+    setMessage("");
+    const userId = localStorage.getItem("devgym_user_id");
+
+    if (!userId) {
+      setMessage("Please log in to apply.");
+      return;
+    }
+
+    setApplyingTo(positionId);
+
+    try {
+      const res = await fetch("http://127.0.0.1:8000/applications", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          position_id: positionId,
+          user_id: userId,
+        }),
+      });
+
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.detail || "Could not apply");
+      }
+
+      setMessage("Application sent!");
+    } catch (err) {
+      setMessage(err.message);
+    } finally {
+      setApplyingTo(null);
+    }
+  }
 
   if (loading) {
     return <p className="text-center text-zinc-500 py-20">Loading...</p>;
@@ -76,6 +113,10 @@ export default function ProjectDetail() {
 
         <h2 className="text-lg font-medium text-zinc-900 dark:text-white mt-8 mb-4">Open positions</h2>
 
+        {message && (
+          <p className="text-sm mb-4 text-zinc-700 dark:text-zinc-300">{message}</p>
+        )}
+
         <div className="flex flex-col gap-3">
           {positions.map((position) => (
             <div key={position.id} className="border border-zinc-200 dark:border-zinc-800 rounded-xl p-4 flex items-center justify-between">
@@ -85,9 +126,20 @@ export default function ProjectDetail() {
                   <p className="text-sm text-zinc-600 dark:text-zinc-400">{position.description}</p>
                 )}
               </div>
-              <span className={`text-xs px-2 py-1 rounded-md ${position.status === "open" ? "bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300" : "bg-zinc-100 text-zinc-500 dark:bg-zinc-800"}`}>
-                {position.status}
-              </span>
+
+              {position.status === "open" ? (
+                <button
+                  onClick={() => handleApply(position.id)}
+                  disabled={applyingTo === position.id}
+                  className="text-xs px-3 py-1.5 rounded-md bg-zinc-900 text-white dark:bg-white dark:text-zinc-900 disabled:opacity-50"
+                >
+                  {applyingTo === position.id ? "Applying..." : "Apply"}
+                </button>
+              ) : (
+                <span className="text-xs px-2 py-1 rounded-md bg-zinc-100 text-zinc-500 dark:bg-zinc-800">
+                  filled
+                </span>
+              )}
             </div>
           ))}
 
