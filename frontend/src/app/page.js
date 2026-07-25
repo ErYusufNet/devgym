@@ -1,14 +1,6 @@
 export default function Home() {
   return (
     <div className="min-h-screen bg-white dark:bg-zinc-950">
-      <nav className="flex items-center justify-between max-w-5xl mx-auto px-6 py-6">
-        <span className="text-xl font-semibold text-zinc-900 dark:text-white">&lt;/&gt; DevGym</span>
-        <div className="flex gap-3">
-          <a href="/login" className="px-4 py-2 text-sm font-medium text-zinc-700 dark:text-zinc-300 hover:text-zinc-900 dark:hover:text-white">Log in</a>
-          <a href="/register" className="px-4 py-2 text-sm font-medium bg-zinc-900 text-white rounded-lg hover:bg-zinc-800 dark:bg-white dark:text-zinc-900">Sign up</a>
-        </div>
-      </nav>
-
       <main className="max-w-3xl mx-auto px-6 pt-20 pb-32 text-center">
         <h1 className="text-4xl sm:text-5xl font-semibold tracking-tight text-zinc-900 dark:text-white mb-6">Build real experience on real teams</h1>
         <p className="text-lg text-zinc-600 dark:text-zinc-400 mb-10 max-w-xl mx-auto">DevGym helps unemployed and early-career developers gain real team experience through non-commercial projects. Publish a project, build a team, ship it together on GitHub.</p>
