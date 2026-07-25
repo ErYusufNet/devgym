@@ -117,6 +117,30 @@ def list_positions(project_id: str, db: Session = Depends(get_db)):
     return db.query(models.Position).filter(models.Position.project_id == project_id).all()
 
 
+@app.get("/projects/{project_id}/applications")
+def get_project_applications(project_id: str, db: Session = Depends(get_db)):
+    positions = db.query(models.Position).filter(models.Position.project_id == project_id).all()
+    position_ids = [p.id for p in positions]
+    position_map = {p.id: p.role_name for p in positions}
+
+    applications = db.query(models.Application).filter(models.Application.position_id.in_(position_ids)).all()
+
+    result = []
+    for app_row in applications:
+        applicant = db.query(models.User).filter(models.User.id == app_row.user_id).first()
+        result.append({
+            "id": app_row.id,
+            "position_id": app_row.position_id,
+            "role_name": position_map.get(app_row.position_id),
+            "user_id": app_row.user_id,
+            "applicant_name": applicant.full_name if applicant else None,
+            "applicant_email": applicant.email if applicant else None,
+            "status": app_row.status,
+            "applied_at": app_row.applied_at,
+        })
+    return result
+
+
 # ---------- Applications ----------
 
 @app.post("/applications", response_model=schemas.ApplicationOut)

@@ -34,6 +34,9 @@ export default function Navbar() {
             <a href="/create-project" className="text-zinc-700 dark:text-zinc-300 hover:text-zinc-900 dark:hover:text-white">
               Publish project
             </a>
+            <a href="/my-projects" className="text-zinc-700 dark:text-zinc-300 hover:text-zinc-900 dark:hover:text-white">
+              My projects
+            </a>
             <button
               onClick={handleLogout}
               className="px-3 py-1.5 text-zinc-700 dark:text-zinc-300 hover:text-zinc-900 dark:hover:text-white"
