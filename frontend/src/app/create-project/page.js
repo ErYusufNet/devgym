@@ -16,8 +16,23 @@ export default function CreateProject() {
   const [durationWeeks, setDurationWeeks] = useState("");
   const [weeklyHours, setWeeklyHours] = useState("");
   const [timezone, setTimezone] = useState("");
+  const [positions, setPositions] = useState([{ role_name: "", description: "" }]);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+
+  function updatePosition(index, field, value) {
+    const updated = [...positions];
+    updated[index][field] = value;
+    setPositions(updated);
+  }
+
+  function addPositionRow() {
+    setPositions([...positions, { role_name: "", description: "" }]);
+  }
+
+  function removePositionRow(index) {
+    setPositions(positions.filter((_, i) => i !== index));
+  }
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -53,6 +68,20 @@ export default function CreateProject() {
       }
 
       const project = await res.json();
+
+      const validPositions = positions.filter((p) => p.role_name.trim() !== "");
+
+      for (const position of validPositions) {
+        await fetch(`http://127.0.0.1:8000/projects/${project.id}/positions`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            role_name: position.role_name,
+            description: position.description,
+          }),
+        });
+      }
+
       router.push(`/projects/${project.id}`);
     } catch (err) {
       setError(err.message);
@@ -136,12 +165,54 @@ export default function CreateProject() {
             className="px-4 py-2 border border-zinc-300 dark:border-zinc-700 rounded-lg bg-white dark:bg-zinc-900 text-zinc-900 dark:text-white"
           />
 
+          <div className="border-t border-zinc-200 dark:border-zinc-800 pt-4 mt-2">
+            <p className="text-sm font-medium text-zinc-900 dark:text-white mb-3">Open positions</p>
+
+            <div className="flex flex-col gap-3">
+              {positions.map((position, index) => (
+                <div key={index} className="flex gap-2">
+                  <input
+                    type="text"
+                    placeholder="Role (e.g. Frontend Developer)"
+                    value={position.role_name}
+                    onChange={(e) => updatePosition(index, "role_name", e.target.value)}
+                    className="flex-1 px-3 py-2 border border-zinc-300 dark:border-zinc-700 rounded-lg bg-white dark:bg-zinc-900 text-zinc-900 dark:text-white text-sm"
+                  />
+                  <input
+                    type="text"
+                    placeholder="Description (optional)"
+                    value={position.description}
+                    onChange={(e) => updatePosition(index, "description", e.target.value)}
+                    className="flex-1 px-3 py-2 border border-zinc-300 dark:border-zinc-700 rounded-lg bg-white dark:bg-zinc-900 text-zinc-900 dark:text-white text-sm"
+                  />
+                  {positions.length > 1 && (
+                    <button
+                      type="button"
+                      onClick={() => removePositionRow(index)}
+                      className="px-2 text-zinc-400 hover:text-red-500"
+                    >
+                      ✕
+                    </button>
+                  )}
+                </div>
+              ))}
+            </div>
+
+            <button
+              type="button"
+              onClick={addPositionRow}
+              className="text-sm text-zinc-600 dark:text-zinc-400 underline mt-3"
+            >
+              + Add another position
+            </button>
+          </div>
+
           {error && <p className="text-sm text-red-500">{error}</p>}
 
           <button
             type="submit"
             disabled={loading}
-            className="px-4 py-2 bg-zinc-900 text-white rounded-lg font-medium hover:bg-zinc-800 dark:bg-white dark:text-zinc-900 disabled:opacity-50"
+            className="px-4 py-2 bg-zinc-900 text-white rounded-lg font-medium hover:bg-zinc-800 dark:bg-white dark:text-zinc-900 disabled:opacity-50 mt-2"
           >
             {loading ? "Publishing..." : "Publish project"}
           </button>
