@@ -55,6 +55,36 @@ def list_users(db: Session = Depends(get_db)):
     return db.query(models.User).all()
 
 
+@app.get("/users/{user_id}/profile")
+def get_user_profile(user_id: str, db: Session = Depends(get_db)):
+    user = db.query(models.User).filter(models.User.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    owned_projects = db.query(models.Project).filter(models.Project.owner_id == user_id).all()
+
+    memberships = db.query(models.TeamMember).filter(models.TeamMember.user_id == user_id).all()
+    joined_project_ids = [m.project_id for m in memberships]
+    joined_projects = db.query(models.Project).filter(models.Project.id.in_(joined_project_ids)).all()
+
+    return {
+        "id": user.id,
+        "email": user.email,
+        "full_name": user.full_name,
+        "skills": user.skills,
+        "experience_level": user.experience_level,
+        "github_username": user.github_username,
+        "availability": user.availability,
+        "plan": user.plan,
+        "owned_projects": [
+            {"id": p.id, "title": p.title, "status": p.status} for p in owned_projects
+        ],
+        "joined_projects": [
+            {"id": p.id, "title": p.title, "status": p.status} for p in joined_projects
+        ],
+    }
+
+
 # ---------- Projects ----------
 
 @app.post("/projects", response_model=schemas.ProjectOut)
