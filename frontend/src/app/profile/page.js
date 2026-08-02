@@ -1,9 +1,11 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import ActivityHeatmap from "@/components/ActivityHeatmap";
 
 export default function Profile() {
   const [profile, setProfile] = useState(null);
+  const [activity, setActivity] = useState({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
@@ -20,6 +22,10 @@ export default function Profile() {
         if (!res.ok) throw new Error("Could not load profile");
         const data = await res.json();
         setProfile(data);
+
+        const activityRes = await fetch("http://127.0.0.1:8000/users/" + userId + "/activity");
+        const activityData = await activityRes.json();
+        setActivity(activityData);
       } catch (err) {
         setError(err.message);
       } finally {
@@ -86,6 +92,10 @@ export default function Profile() {
         )}
 
         <div className="mb-8">
+          <ActivityHeatmap activity={activity} />
+        </div>
+
+        <div className="mb-8">
           <h2 className="text-sm font-medium text-zinc-900 dark:text-white mb-3">Projects published ({profile.owned_projects.length})</h2>
           <div className="flex flex-col gap-2">
             {profile.owned_projects.map((p) => (
@@ -110,7 +120,7 @@ export default function Profile() {
               </a>
             ))}
             {profile.joined_projects.length === 0 && (
-              <p className="text-sm text-zinc-500">Haven't joined any projects yet.</p>
+              <p className="text-sm text-zinc-500">Haven&apos;t joined any projects yet.</p>
             )}
           </div>
         </div>
