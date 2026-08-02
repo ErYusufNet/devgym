@@ -62,6 +62,7 @@ class User(Base):
     email = Column(String, unique=True, nullable=False, index=True)
     password_hash = Column(String, nullable=False)
     full_name = Column(String)
+    bio = Column(Text)
     skills = Column(JSON, default=list)
     experience_level = Column(Enum(ExperienceLevel))
     github_username = Column(String)
