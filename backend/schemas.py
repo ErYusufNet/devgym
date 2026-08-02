@@ -11,6 +11,7 @@ class UserCreate(BaseModel):
     email: EmailStr
     password: str
     full_name: Optional[str] = None
+    bio: Optional[str] = None
     skills: Optional[List[str]] = []
     experience_level: Optional[ExperienceLevel] = None
     github_username: Optional[str] = None
@@ -21,6 +22,7 @@ class UserOut(BaseModel):
     id: str
     email: EmailStr
     full_name: Optional[str]
+    bio: Optional[str]
     skills: List[str]
     experience_level: Optional[ExperienceLevel]
     github_username: Optional[str]
