@@ -1,10 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
 
 export default function Navbar() {
-  const router = useRouter();
   const [isLoggedIn, setIsLoggedIn] = useState(false);
 
   useEffect(() => {
@@ -14,8 +12,7 @@ export default function Navbar() {
   function handleLogout() {
     localStorage.removeItem("devgym_token");
     localStorage.removeItem("devgym_user_id");
-    router.push("/");
-    router.refresh();
+    window.location.href = "/";
   }
 
   return (

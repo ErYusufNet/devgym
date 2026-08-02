@@ -1,10 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 
 export default function Login() {
-  const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -30,7 +28,7 @@ export default function Login() {
       localStorage.setItem("devgym_token", data.access_token);
       localStorage.setItem("devgym_user_id", data.user_id);
 
-      router.push("/");
+      window.location.href = "/";
     } catch (err) {
       setError(err.message);
     } finally {
