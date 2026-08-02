@@ -13,7 +13,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata = {
-  title: "DevGym",
+  title: "ErNord",
   description: "Build real experience on real teams.",
 };
 

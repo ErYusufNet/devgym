@@ -11,7 +11,7 @@ from database import engine, get_db
 # Create database tables (creates devgym.db on first run)
 models.Base.metadata.create_all(bind=engine)
 
-app = FastAPI(title="DevGym API")
+app = FastAPI(title="ErNord API")
 
 app.add_middleware(
     CORSMiddleware,

@@ -18,7 +18,7 @@ export default function Navbar() {
   return (
     <nav className="flex items-center justify-between max-w-5xl mx-auto px-6 py-4 w-full">
       <a href="/" className="text-lg font-semibold text-zinc-900 dark:text-white">
-        &lt;/&gt; DevGym
+        &lt;/&gt; ErNord
       </a>
 
       <div className="flex items-center gap-4 text-sm">
