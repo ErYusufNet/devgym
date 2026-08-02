@@ -85,6 +85,30 @@ def get_user_profile(user_id: str, db: Session = Depends(get_db)):
     }
 
 
+@app.get("/users/{user_id}/activity")
+def get_user_activity(user_id: str, db: Session = Depends(get_db)):
+    user = db.query(models.User).filter(models.User.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    dates = []
+
+    projects = db.query(models.Project).filter(models.Project.owner_id == user_id).all()
+    dates += [p.created_at.date().isoformat() for p in projects]
+
+    applications = db.query(models.Application).filter(models.Application.user_id == user_id).all()
+    dates += [a.applied_at.date().isoformat() for a in applications]
+
+    memberships = db.query(models.TeamMember).filter(models.TeamMember.user_id == user_id).all()
+    dates += [m.joined_at.date().isoformat() for m in memberships]
+
+    counts = {}
+    for d in dates:
+        counts[d] = counts.get(d, 0) + 1
+
+    return counts
+
+
 # ---------- Projects ----------
 
 @app.post("/projects", response_model=schemas.ProjectOut)
