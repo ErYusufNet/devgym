@@ -5,6 +5,7 @@ import ScrollReveal from "@/components/ScrollReveal";
 import IconBadge from "@/components/IconBadge";
 import { IconPencil, IconTrash } from "@/components/icons/TablerIcons";
 import { getProjectTypeMeta } from "@/lib/projectTypeMeta";
+import { authFetch } from "@/lib/authFetch";
 
 export default function MyProjects() {
   const [projects, setProjects] = useState([]);
@@ -49,7 +50,7 @@ export default function MyProjects() {
   async function handleAccept(applicationId) {
     setActionMessage("");
     try {
-      const res = await fetch(`http://127.0.0.1:8000/applications/${applicationId}/accept`, {
+      const res = await authFetch(`http://127.0.0.1:8000/applications/${applicationId}/accept`, {
         method: "POST",
       });
       if (!res.ok) {

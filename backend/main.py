@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Depends, HTTPException
+from fastapi import FastAPI, Depends, HTTPException, Header
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 from datetime import datetime
@@ -20,6 +20,22 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+def get_current_user(authorization: str = Header(None), db: Session = Depends(get_db)):
+    if not authorization or not authorization.startswith("Bearer "):
+        raise HTTPException(status_code=401, detail="Not authenticated")
+
+    token = authorization.split(" ", 1)[1]
+    payload = auth.decode_access_token(token)
+    if not payload:
+        raise HTTPException(status_code=401, detail="Invalid or expired token")
+
+    user = db.query(models.User).filter(models.User.id == payload.get("sub")).first()
+    if not user:
+        raise HTTPException(status_code=401, detail="User not found")
+
+    return user
 
 
 @app.get("/")
@@ -88,18 +104,22 @@ def get_user_profile(user_id: str, db: Session = Depends(get_db)):
 
 
 @app.put("/users/{user_id}", response_model=schemas.UserOut)
-def update_user(user_id: str, updates: schemas.UserUpdate, db: Session = Depends(get_db)):
-    user = db.query(models.User).filter(models.User.id == user_id).first()
-    if not user:
-        raise HTTPException(status_code=404, detail="User not found")
+def update_user(
+    user_id: str,
+    updates: schemas.UserUpdate,
+    current_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    if user_id != current_user.id:
+        raise HTTPException(status_code=403, detail="You can only update your own profile")
 
     update_data = updates.dict(exclude_unset=True)
     for field, value in update_data.items():
-        setattr(user, field, value)
+        setattr(current_user, field, value)
 
     db.commit()
-    db.refresh(user)
-    return user
+    db.refresh(current_user)
+    return current_user
 
 
 @app.get("/users/{user_id}/activity")
@@ -205,13 +225,13 @@ def delete_education(education_id: str, db: Session = Depends(get_db)):
 # ---------- Projects ----------
 
 @app.post("/projects", response_model=schemas.ProjectOut)
-def create_project(project: schemas.ProjectCreate, owner_id: str, db: Session = Depends(get_db)):
-    owner = db.query(models.User).filter(models.User.id == owner_id).first()
-    if not owner:
-        raise HTTPException(status_code=404, detail="User not found")
-
+def create_project(
+    project: schemas.ProjectCreate,
+    current_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
     new_project = models.Project(
-        owner_id=owner_id,
+        owner_id=current_user.id,
         title=project.title,
         description=project.description,
         tech_stack=project.tech_stack,
@@ -241,11 +261,16 @@ def get_project(project_id: str, db: Session = Depends(get_db)):
 
 
 @app.put("/projects/{project_id}", response_model=schemas.ProjectOut)
-def update_project(project_id: str, updates: schemas.ProjectUpdate, owner_id: str, db: Session = Depends(get_db)):
+def update_project(
+    project_id: str,
+    updates: schemas.ProjectUpdate,
+    current_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
     project = db.query(models.Project).filter(models.Project.id == project_id).first()
     if not project:
         raise HTTPException(status_code=404, detail="Project not found")
-    if project.owner_id != owner_id:
+    if project.owner_id != current_user.id:
         raise HTTPException(status_code=403, detail="Only the project owner can update this project")
 
     update_data = updates.dict(exclude_unset=True)
@@ -258,11 +283,15 @@ def update_project(project_id: str, updates: schemas.ProjectUpdate, owner_id: st
 
 
 @app.delete("/projects/{project_id}")
-def delete_project(project_id: str, owner_id: str, db: Session = Depends(get_db)):
+def delete_project(
+    project_id: str,
+    current_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
     project = db.query(models.Project).filter(models.Project.id == project_id).first()
     if not project:
         raise HTTPException(status_code=404, detail="Project not found")
-    if project.owner_id != owner_id:
+    if project.owner_id != current_user.id:
         raise HTTPException(status_code=403, detail="Only the project owner can delete this project")
 
     position_ids = [
@@ -302,13 +331,22 @@ def list_positions(project_id: str, db: Session = Depends(get_db)):
 
 
 @app.delete("/projects/{project_id}/positions/{position_id}")
-def delete_position(project_id: str, position_id: str, db: Session = Depends(get_db)):
+def delete_position(
+    project_id: str,
+    position_id: str,
+    current_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
     position = db.query(models.Position).filter(
         models.Position.id == position_id,
         models.Position.project_id == project_id,
     ).first()
     if not position:
         raise HTTPException(status_code=404, detail="Position not found")
+
+    project = db.query(models.Project).filter(models.Project.id == project_id).first()
+    if not project or project.owner_id != current_user.id:
+        raise HTTPException(status_code=403, detail="Only the project owner can delete positions")
 
     db.query(models.Application).filter(models.Application.position_id == position_id).delete(synchronize_session=False)
     db.delete(position)
@@ -343,20 +381,20 @@ def get_project_applications(project_id: str, db: Session = Depends(get_db)):
 # ---------- Applications ----------
 
 @app.post("/applications", response_model=schemas.ApplicationOut)
-def create_application(application: schemas.ApplicationCreate, db: Session = Depends(get_db)):
+def create_application(
+    application: schemas.ApplicationCreate,
+    current_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
     position = db.query(models.Position).filter(models.Position.id == application.position_id).first()
     if not position:
         raise HTTPException(status_code=404, detail="Position not found")
     if position.status != models.PositionStatus.open:
         raise HTTPException(status_code=400, detail="This position is currently filled")
 
-    user = db.query(models.User).filter(models.User.id == application.user_id).first()
-    if not user:
-        raise HTTPException(status_code=404, detail="User not found")
-
     new_application = models.Application(
         position_id=application.position_id,
-        user_id=application.user_id,
+        user_id=current_user.id,
     )
     db.add(new_application)
     db.commit()
@@ -370,12 +408,20 @@ def list_applications(db: Session = Depends(get_db)):
 
 
 @app.post("/applications/{application_id}/accept", response_model=schemas.ApplicationOut)
-def accept_application(application_id: str, db: Session = Depends(get_db)):
+def accept_application(
+    application_id: str,
+    current_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
     application = db.query(models.Application).filter(models.Application.id == application_id).first()
     if not application:
         raise HTTPException(status_code=404, detail="Application not found")
 
     position = db.query(models.Position).filter(models.Position.id == application.position_id).first()
+    project = db.query(models.Project).filter(models.Project.id == position.project_id).first()
+    if not project or project.owner_id != current_user.id:
+        raise HTTPException(status_code=403, detail="Only the project owner can accept applications")
+
     if position.status != models.PositionStatus.open:
         raise HTTPException(status_code=400, detail="This position is no longer open")
 
@@ -396,10 +442,19 @@ def accept_application(application_id: str, db: Session = Depends(get_db)):
 
 
 @app.post("/applications/{application_id}/reject", response_model=schemas.ApplicationOut)
-def reject_application(application_id: str, db: Session = Depends(get_db)):
+def reject_application(
+    application_id: str,
+    current_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
     application = db.query(models.Application).filter(models.Application.id == application_id).first()
     if not application:
         raise HTTPException(status_code=404, detail="Application not found")
+
+    position = db.query(models.Position).filter(models.Position.id == application.position_id).first()
+    project = db.query(models.Project).filter(models.Project.id == position.project_id).first()
+    if not project or project.owner_id != current_user.id:
+        raise HTTPException(status_code=403, detail="Only the project owner can reject applications")
 
     application.status = models.ApplicationStatus.rejected
     db.commit()
@@ -415,10 +470,16 @@ def list_team_members(project_id: str, db: Session = Depends(get_db)):
 
 
 @app.post("/team_members/{member_id}/leave", response_model=schemas.TeamMemberOut)
-def leave_team(member_id: str, db: Session = Depends(get_db)):
+def leave_team(
+    member_id: str,
+    current_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
     member = db.query(models.TeamMember).filter(models.TeamMember.id == member_id).first()
     if not member:
         raise HTTPException(status_code=404, detail="Team membership not found")
+    if member.user_id != current_user.id:
+        raise HTTPException(status_code=403, detail="You can only leave your own team membership")
     if member.left_at is not None:
         raise HTTPException(status_code=400, detail="This member has already left")
 

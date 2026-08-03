@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
+import { authFetch } from "@/lib/authFetch";
 
 const PROJECT_TYPES = ["web", "mobile", "saas", "desktop", "api", "game", "testing"];
 
@@ -66,8 +67,7 @@ export default function EditProject() {
     e.preventDefault();
     setError("");
 
-    const userId = localStorage.getItem("devgym_user_id");
-    if (!userId) {
+    if (!localStorage.getItem("devgym_token")) {
       setError("Please log in to edit this project.");
       return;
     }
@@ -75,7 +75,7 @@ export default function EditProject() {
     setSaving(true);
 
     try {
-      const res = await fetch(`http://127.0.0.1:8000/projects/${id}?owner_id=${userId}`, {
+      const res = await authFetch(`http://127.0.0.1:8000/projects/${id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -108,7 +108,7 @@ export default function EditProject() {
     setAddingPosition(true);
 
     try {
-      const res = await fetch(`http://127.0.0.1:8000/projects/${id}/positions`, {
+      const res = await authFetch(`http://127.0.0.1:8000/projects/${id}/positions`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -134,7 +134,7 @@ export default function EditProject() {
   }
 
   async function handleDeletePosition(positionId) {
-    await fetch(`http://127.0.0.1:8000/projects/${id}/positions/${positionId}`, {
+    await authFetch(`http://127.0.0.1:8000/projects/${id}/positions/${positionId}`, {
       method: "DELETE",
     });
     setPositions(positions.filter((p) => p.id !== positionId));

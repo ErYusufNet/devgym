@@ -109,7 +109,6 @@ class PositionOut(BaseModel):
 
 class ApplicationCreate(BaseModel):
     position_id: str
-    user_id: str
 
 
 class ApplicationOut(BaseModel):

@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import ScrollReveal from "@/components/ScrollReveal";
 import IconBadge from "@/components/IconBadge";
 import { IconRocket, IconUsers } from "@/components/icons/TablerIcons";
+import { authFetch } from "@/lib/authFetch";
 
 const PROJECT_TYPES = ["web", "mobile", "saas", "desktop", "api", "game", "testing"];
 
@@ -41,8 +42,7 @@ export default function CreateProject() {
     e.preventDefault();
     setError("");
 
-    const ownerId = localStorage.getItem("devgym_user_id");
-    if (!ownerId) {
+    if (!localStorage.getItem("devgym_token")) {
       setError("Please log in to create a project.");
       return;
     }
@@ -50,7 +50,7 @@ export default function CreateProject() {
     setLoading(true);
 
     try {
-      const res = await fetch(`http://127.0.0.1:8000/projects?owner_id=${ownerId}`, {
+      const res = await authFetch("http://127.0.0.1:8000/projects", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -75,7 +75,7 @@ export default function CreateProject() {
       const validPositions = positions.filter((p) => p.role_name.trim() !== "");
 
       for (const position of validPositions) {
-        await fetch(`http://127.0.0.1:8000/projects/${project.id}/positions`, {
+        await authFetch(`http://127.0.0.1:8000/projects/${project.id}/positions`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
