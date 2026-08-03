@@ -57,6 +57,17 @@ class ProjectCreate(BaseModel):
     timezone: Optional[str] = None
 
 
+class ProjectUpdate(BaseModel):
+    title: Optional[str] = None
+    description: Optional[str] = None
+    tech_stack: Optional[List[str]] = None
+    github_repo_url: Optional[str] = None
+    project_type: Optional[ProjectType] = None
+    duration_weeks: Optional[int] = None
+    weekly_hours: Optional[int] = None
+    timezone: Optional[str] = None
+
+
 class ProjectOut(BaseModel):
     id: str
     owner_id: str

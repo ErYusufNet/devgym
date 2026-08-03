@@ -240,6 +240,43 @@ def get_project(project_id: str, db: Session = Depends(get_db)):
     return project
 
 
+@app.put("/projects/{project_id}", response_model=schemas.ProjectOut)
+def update_project(project_id: str, updates: schemas.ProjectUpdate, owner_id: str, db: Session = Depends(get_db)):
+    project = db.query(models.Project).filter(models.Project.id == project_id).first()
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+    if project.owner_id != owner_id:
+        raise HTTPException(status_code=403, detail="Only the project owner can update this project")
+
+    update_data = updates.dict(exclude_unset=True)
+    for field, value in update_data.items():
+        setattr(project, field, value)
+
+    db.commit()
+    db.refresh(project)
+    return project
+
+
+@app.delete("/projects/{project_id}")
+def delete_project(project_id: str, owner_id: str, db: Session = Depends(get_db)):
+    project = db.query(models.Project).filter(models.Project.id == project_id).first()
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+    if project.owner_id != owner_id:
+        raise HTTPException(status_code=403, detail="Only the project owner can delete this project")
+
+    position_ids = [
+        p.id for p in db.query(models.Position).filter(models.Position.project_id == project_id).all()
+    ]
+
+    db.query(models.Application).filter(models.Application.position_id.in_(position_ids)).delete(synchronize_session=False)
+    db.query(models.TeamMember).filter(models.TeamMember.project_id == project_id).delete(synchronize_session=False)
+    db.query(models.Position).filter(models.Position.project_id == project_id).delete(synchronize_session=False)
+    db.delete(project)
+    db.commit()
+    return {"ok": True}
+
+
 # ---------- Positions ----------
 
 @app.post("/projects/{project_id}/positions", response_model=schemas.PositionOut)
@@ -262,6 +299,21 @@ def create_position(project_id: str, position: schemas.PositionCreate, db: Sessi
 @app.get("/projects/{project_id}/positions", response_model=list[schemas.PositionOut])
 def list_positions(project_id: str, db: Session = Depends(get_db)):
     return db.query(models.Position).filter(models.Position.project_id == project_id).all()
+
+
+@app.delete("/projects/{project_id}/positions/{position_id}")
+def delete_position(project_id: str, position_id: str, db: Session = Depends(get_db)):
+    position = db.query(models.Position).filter(
+        models.Position.id == position_id,
+        models.Position.project_id == project_id,
+    ).first()
+    if not position:
+        raise HTTPException(status_code=404, detail="Position not found")
+
+    db.query(models.Application).filter(models.Application.position_id == position_id).delete(synchronize_session=False)
+    db.delete(position)
+    db.commit()
+    return {"ok": True}
 
 
 @app.get("/projects/{project_id}/applications")
