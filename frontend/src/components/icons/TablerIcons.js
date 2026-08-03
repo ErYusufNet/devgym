@@ -239,3 +239,24 @@ export function IconTrash({ className = "w-5 h-5" }) {
     </svg>
   );
 }
+
+export function IconLogin({ className = "w-5 h-5" }) {
+  return (
+    <svg {...base} className={className}>
+      <path d="M15 8v-2a2 2 0 0 0 -2 -2h-7a2 2 0 0 0 -2 2v12a2 2 0 0 0 2 2h7a2 2 0 0 0 2 -2v-2" />
+      <path d="M21 12h-13l3 -3" />
+      <path d="M11 15l-3 -3" />
+    </svg>
+  );
+}
+
+export function IconUserPlus({ className = "w-5 h-5" }) {
+  return (
+    <svg {...base} className={className}>
+      <path d="M8 7a4 4 0 1 0 8 0a4 4 0 0 0 -8 0" />
+      <path d="M16 19h6" />
+      <path d="M19 16v6" />
+      <path d="M6 21v-2a4 4 0 0 1 4 -4h4" />
+    </svg>
+  );
+}

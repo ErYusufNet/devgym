@@ -2,6 +2,9 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import ScrollReveal from "@/components/ScrollReveal";
+import IconBadge from "@/components/IconBadge";
+import { IconUserPlus } from "@/components/icons/TablerIcons";
 
 export default function Register() {
   const router = useRouter();
@@ -41,11 +44,17 @@ export default function Register() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-white px-6">
-      <div className="w-full max-w-sm">
+    <div className="min-h-screen flex items-center justify-center bg-white px-6 py-12">
+      <ScrollReveal className="w-full max-w-sm">
+        <div className="flex justify-center mb-4">
+          <IconBadge icon={IconUserPlus} color="purple" />
+        </div>
         <h1 className="text-3xl font-semibold text-navy mb-6 text-center">Create your account</h1>
 
-        <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+        <form
+          onSubmit={handleSubmit}
+          className="flex flex-col gap-4 border border-slate-200 rounded-xl shadow-sm bg-white p-6"
+        >
           <input
             type="text"
             placeholder="Full name"
@@ -85,7 +94,7 @@ export default function Register() {
         <p className="text-sm text-secondary text-center mt-6">
           Already have an account? <a href="/login" className="text-navy font-medium">Log in</a>
         </p>
-      </div>
+      </ScrollReveal>
     </div>
   );
 }

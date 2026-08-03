@@ -1,6 +1,9 @@
 "use client";
 
 import { useState } from "react";
+import ScrollReveal from "@/components/ScrollReveal";
+import IconBadge from "@/components/IconBadge";
+import { IconLogin } from "@/components/icons/TablerIcons";
 
 export default function Login() {
   const [email, setEmail] = useState("");
@@ -37,11 +40,17 @@ export default function Login() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-white px-6">
-      <div className="w-full max-w-sm">
+    <div className="min-h-screen flex items-center justify-center bg-white px-6 py-12">
+      <ScrollReveal className="w-full max-w-sm">
+        <div className="flex justify-center mb-4">
+          <IconBadge icon={IconLogin} color="blue" />
+        </div>
         <h1 className="text-3xl font-semibold text-navy mb-6 text-center">Log in to DevGym</h1>
 
-        <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+        <form
+          onSubmit={handleSubmit}
+          className="flex flex-col gap-4 border border-slate-200 rounded-xl shadow-sm bg-white p-6"
+        >
           <input
             type="email"
             placeholder="Email"
@@ -73,7 +82,7 @@ export default function Login() {
         <p className="text-sm text-secondary text-center mt-6">
           Don&apos;t have an account? <a href="/register" className="text-navy font-medium">Sign up</a>
         </p>
-      </div>
+      </ScrollReveal>
     </div>
   );
 }
