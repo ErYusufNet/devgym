@@ -163,9 +163,12 @@ export default function MyProjects() {
                             {(app.applicant_name || app.applicant_email || "?")[0].toUpperCase()}
                           </div>
                           <div>
-                            <p className="text-sm font-medium text-navy">
+                            <a
+                              href={`/profile/${app.user_id}`}
+                              className="text-sm font-medium text-navy hover:text-accent hover:underline"
+                            >
                               {app.applicant_name || app.applicant_email}
-                            </p>
+                            </a>
                             <p className="text-xs text-secondary">
                               Applied for {app.role_name} · {app.status}
                             </p>
