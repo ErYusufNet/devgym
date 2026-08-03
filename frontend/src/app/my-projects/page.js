@@ -74,38 +74,38 @@ export default function MyProjects() {
     }
   }
 
-  if (loading) return <p className="text-center text-zinc-500 py-20">Loading...</p>;
+  if (loading) return <p className="text-center text-secondary py-20">Loading...</p>;
   if (error) return <p className="text-center text-red-500 py-20">{error}</p>;
 
   return (
-    <div className="min-h-screen bg-white dark:bg-zinc-950 px-6 py-12">
+    <div className="min-h-screen bg-white px-6 py-12">
       <div className="max-w-2xl mx-auto">
-        <h1 className="text-2xl font-semibold text-zinc-900 dark:text-white mb-8">My projects</h1>
+        <h1 className="text-3xl font-semibold text-navy mb-8">My projects</h1>
 
         {actionMessage && (
-          <p className="text-sm mb-4 text-zinc-700 dark:text-zinc-300">{actionMessage}</p>
+          <p className="text-sm mb-4 text-navy">{actionMessage}</p>
         )}
 
         {projects.length === 0 && (
-          <p className="text-zinc-500 text-sm">You haven&apos;t published any projects yet.</p>
+          <p className="text-secondary text-sm">You haven&apos;t published any projects yet.</p>
         )}
 
-        <div className="flex flex-col gap-8">
+        <div className="flex flex-col gap-6">
           {projects.map((project) => {
             const applications = applicationsByProject[project.id] || [];
             return (
-              <div key={project.id} className="border border-zinc-200 dark:border-zinc-800 rounded-xl p-5">
-                <h2 className="text-lg font-medium text-zinc-900 dark:text-white mb-1">{project.title}</h2>
-                <p className="text-sm text-zinc-500 mb-4">{applications.length} application(s)</p>
+              <div key={project.id} className="border border-slate-200 rounded-xl p-6 bg-white shadow-sm">
+                <h2 className="text-lg font-semibold text-navy mb-1">{project.title}</h2>
+                <p className="text-sm text-secondary mb-4">{applications.length} application(s)</p>
 
                 <div className="flex flex-col gap-2">
                   {applications.map((app) => (
-                    <div key={app.id} className="flex items-center justify-between border border-zinc-100 dark:border-zinc-800 rounded-lg p-3">
+                    <div key={app.id} className="flex items-center justify-between border border-slate-200 rounded-lg p-3">
                       <div>
-                        <p className="text-sm font-medium text-zinc-900 dark:text-white">
+                        <p className="text-sm font-medium text-navy">
                           {app.applicant_name || app.applicant_email}
                         </p>
-                        <p className="text-xs text-zinc-500">
+                        <p className="text-xs text-secondary">
                           Applied for {app.role_name} · {app.status}
                         </p>
                       </div>
@@ -114,13 +114,13 @@ export default function MyProjects() {
                         <div className="flex gap-2">
                           <button
                             onClick={() => handleAccept(app.id)}
-                            className="text-xs px-3 py-1.5 rounded-md bg-zinc-900 text-white dark:bg-white dark:text-zinc-900"
+                            className="text-xs px-3 py-1.5 rounded-md bg-accent text-white hover:bg-accent-hover"
                           >
                             Accept
                           </button>
                           <button
                             onClick={() => handleReject(app.id)}
-                            className="text-xs px-3 py-1.5 rounded-md border border-zinc-300 dark:border-zinc-700 text-zinc-700 dark:text-zinc-300"
+                            className="text-xs px-3 py-1.5 rounded-md border border-slate-300 text-navy hover:bg-surface"
                           >
                             Reject
                           </button>
@@ -130,7 +130,7 @@ export default function MyProjects() {
                   ))}
 
                   {applications.length === 0 && (
-                    <p className="text-xs text-zinc-500">No applications yet.</p>
+                    <p className="text-xs text-secondary">No applications yet.</p>
                   )}
                 </div>
               </div>

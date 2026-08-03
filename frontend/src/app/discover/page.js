@@ -24,46 +24,46 @@ export default function Discover() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-white dark:bg-zinc-950 px-6 py-12">
+    <div className="min-h-screen bg-white px-6 py-12">
       <div className="max-w-2xl mx-auto">
-        <h1 className="text-2xl font-semibold text-zinc-900 dark:text-white mb-8">Discover projects</h1>
+        <h1 className="text-3xl font-semibold text-navy mb-8">Discover projects</h1>
 
-        {loading && <p className="text-zinc-500">Loading...</p>}
+        {loading && <p className="text-secondary">Loading...</p>}
         {error && <p className="text-red-500">{error}</p>}
 
-        <div className="flex flex-col gap-4">
+        <div className="flex flex-col gap-5">
           {projects.map((project) => (
-            <div key={project.id} className="border border-zinc-200 dark:border-zinc-800 rounded-xl p-5 bg-white dark:bg-zinc-900">
-              <div className="flex items-center justify-between mb-1">
-                <h2 className="text-lg font-medium text-zinc-900 dark:text-white">{project.title}</h2>
+            <div key={project.id} className="border border-slate-200 rounded-xl p-6 bg-white shadow-sm hover:shadow-md transition-shadow">
+              <div className="flex items-center justify-between mb-2">
+                <h2 className="text-lg font-semibold text-navy">{project.title}</h2>
                 {project.project_type && (
-                  <span className="text-xs px-2 py-1 rounded-md bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 capitalize">
+                  <span className="text-xs px-2 py-1 rounded-md bg-surface text-secondary capitalize">
                     {project.project_type}
                   </span>
                 )}
               </div>
 
-              <p className="text-sm text-zinc-600 dark:text-zinc-400 mb-3">{project.description}</p>
+              <p className="text-sm text-secondary mb-4">{project.description}</p>
 
-              <div className="flex flex-wrap gap-2 mb-3">
+              <div className="flex flex-wrap gap-2 mb-4">
                 {project.tech_stack.map((tech) => (
-                  <span key={tech} className="text-xs px-2 py-1 rounded-md bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300">{tech}</span>
+                  <span key={tech} className="text-xs px-2 py-1 rounded-md bg-surface text-navy">{tech}</span>
                 ))}
               </div>
 
-              <div className="flex flex-wrap gap-4 text-xs text-zinc-500 dark:text-zinc-500 mb-4">
+              <div className="flex flex-wrap gap-4 text-xs text-secondary mb-4">
                 {project.duration_weeks && <span>{project.duration_weeks} weeks</span>}
                 {project.weekly_hours && <span>{project.weekly_hours} hrs / week</span>}
                 {project.timezone && <span>{project.timezone}</span>}
               </div>
 
-              <a href={`/projects/${project.id}`} className="text-sm font-medium text-zinc-900 dark:text-white underline">View project</a>
+              <a href={`/projects/${project.id}`} className="text-sm font-medium text-accent hover:text-accent-hover">View project →</a>
             </div>
           ))}
         </div>
 
         {!loading && projects.length === 0 && (
-          <p className="text-zinc-500">No projects published yet.</p>
+          <p className="text-secondary">No projects published yet.</p>
         )}
       </div>
     </div>

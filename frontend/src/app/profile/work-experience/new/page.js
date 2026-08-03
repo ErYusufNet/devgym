@@ -53,9 +53,9 @@ export default function AddWorkExperience() {
   }
 
   return (
-    <div className="min-h-screen bg-white dark:bg-zinc-950 px-6 py-12">
+    <div className="min-h-screen bg-white px-6 py-12">
       <div className="max-w-lg mx-auto">
-        <h1 className="text-2xl font-semibold text-zinc-900 dark:text-white mb-8">Add work experience</h1>
+        <h1 className="text-3xl font-semibold text-navy mb-8">Add work experience</h1>
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
           <input
@@ -64,7 +64,7 @@ export default function AddWorkExperience() {
             value={company}
             onChange={(e) => setCompany(e.target.value)}
             required
-            className="px-4 py-2 border border-zinc-300 dark:border-zinc-700 rounded-lg bg-white dark:bg-zinc-900 text-zinc-900 dark:text-white"
+            className="px-4 py-2 border border-slate-300 rounded-lg bg-white text-navy placeholder:text-secondary focus:outline-none focus:border-accent"
           />
 
           <input
@@ -73,7 +73,7 @@ export default function AddWorkExperience() {
             value={role}
             onChange={(e) => setRole(e.target.value)}
             required
-            className="px-4 py-2 border border-zinc-300 dark:border-zinc-700 rounded-lg bg-white dark:bg-zinc-900 text-zinc-900 dark:text-white"
+            className="px-4 py-2 border border-slate-300 rounded-lg bg-white text-navy placeholder:text-secondary focus:outline-none focus:border-accent"
           />
 
           <div className="flex gap-4">
@@ -83,14 +83,14 @@ export default function AddWorkExperience() {
               value={startDate}
               onChange={(e) => setStartDate(e.target.value)}
               required
-              className="flex-1 px-4 py-2 border border-zinc-300 dark:border-zinc-700 rounded-lg bg-white dark:bg-zinc-900 text-zinc-900 dark:text-white"
+              className="flex-1 px-4 py-2 border border-slate-300 rounded-lg bg-white text-navy placeholder:text-secondary focus:outline-none focus:border-accent"
             />
             <input
               type="text"
               placeholder="End date (leave empty if current)"
               value={endDate}
               onChange={(e) => setEndDate(e.target.value)}
-              className="flex-1 px-4 py-2 border border-zinc-300 dark:border-zinc-700 rounded-lg bg-white dark:bg-zinc-900 text-zinc-900 dark:text-white"
+              className="flex-1 px-4 py-2 border border-slate-300 rounded-lg bg-white text-navy placeholder:text-secondary focus:outline-none focus:border-accent"
             />
           </div>
 
@@ -99,7 +99,7 @@ export default function AddWorkExperience() {
             value={description}
             onChange={(e) => setDescription(e.target.value)}
             rows={4}
-            className="px-4 py-2 border border-zinc-300 dark:border-zinc-700 rounded-lg bg-white dark:bg-zinc-900 text-zinc-900 dark:text-white"
+            className="px-4 py-2 border border-slate-300 rounded-lg bg-white text-navy placeholder:text-secondary focus:outline-none focus:border-accent"
           />
 
           {error && <p className="text-sm text-red-500">{error}</p>}
@@ -108,14 +108,14 @@ export default function AddWorkExperience() {
             <button
               type="submit"
               disabled={saving}
-              className="px-4 py-2 bg-zinc-900 text-white rounded-lg font-medium hover:bg-zinc-800 dark:bg-white dark:text-zinc-900 disabled:opacity-50"
+              className="px-4 py-2 bg-accent text-white rounded-lg font-medium hover:bg-accent-hover disabled:opacity-50"
             >
               {saving ? "Saving..." : "Add experience"}
             </button>
             <button
               type="button"
               onClick={() => router.push("/profile")}
-              className="px-4 py-2 text-zinc-700 dark:text-zinc-300 hover:text-zinc-900 dark:hover:text-white"
+              className="px-4 py-2 text-secondary hover:text-navy"
             >
               Cancel
             </button>

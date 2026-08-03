@@ -72,7 +72,7 @@ export default function ProjectDetail() {
   }
 
   if (loading) {
-    return <p className="text-center text-zinc-500 py-20">Loading...</p>;
+    return <p className="text-center text-secondary py-20">Loading...</p>;
   }
 
   if (error) {
@@ -80,50 +80,50 @@ export default function ProjectDetail() {
   }
 
   return (
-    <div className="min-h-screen bg-white dark:bg-zinc-950 px-6 py-12">
+    <div className="min-h-screen bg-white px-6 py-12">
       <div className="max-w-2xl mx-auto">
         <div className="flex items-center justify-between mb-2">
-          <h1 className="text-2xl font-semibold text-zinc-900 dark:text-white">{project.title}</h1>
+          <h1 className="text-3xl font-semibold text-navy">{project.title}</h1>
           {project.project_type && (
-            <span className="text-xs px-2 py-1 rounded-md bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 capitalize">
+            <span className="text-xs px-2 py-1 rounded-md bg-surface text-secondary capitalize">
               {project.project_type}
             </span>
           )}
         </div>
 
-        <p className="text-zinc-600 dark:text-zinc-400 mb-4">{project.description}</p>
+        <p className="text-secondary mb-4">{project.description}</p>
 
         <div className="flex flex-wrap gap-2 mb-4">
           {project.tech_stack.map((tech) => (
-            <span key={tech} className="text-xs px-2 py-1 rounded-md bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300">{tech}</span>
+            <span key={tech} className="text-xs px-2 py-1 rounded-md bg-surface text-navy">{tech}</span>
           ))}
         </div>
 
-        <div className="flex flex-wrap gap-4 text-sm text-zinc-500 mb-6">
+        <div className="flex flex-wrap gap-4 text-sm text-secondary mb-6">
           {project.duration_weeks && <span>{project.duration_weeks} weeks</span>}
           {project.weekly_hours && <span>{project.weekly_hours} hrs / week</span>}
           {project.timezone && <span>{project.timezone}</span>}
         </div>
 
         {project.github_repo_url && (
-          <a href={project.github_repo_url} target="_blank" rel="noopener noreferrer" className="text-sm text-zinc-900 dark:text-white underline mb-8 inline-block">
+          <a href={project.github_repo_url} target="_blank" rel="noopener noreferrer" className="text-sm text-accent hover:text-accent-hover mb-8 inline-block">
             View GitHub repository
           </a>
         )}
 
-        <h2 className="text-lg font-medium text-zinc-900 dark:text-white mt-8 mb-4">Open positions</h2>
+        <h2 className="text-xl font-semibold text-navy mt-8 mb-4">Open positions</h2>
 
         {message && (
-          <p className="text-sm mb-4 text-zinc-700 dark:text-zinc-300">{message}</p>
+          <p className="text-sm mb-4 text-navy">{message}</p>
         )}
 
         <div className="flex flex-col gap-3">
           {positions.map((position) => (
-            <div key={position.id} className="border border-zinc-200 dark:border-zinc-800 rounded-xl p-4 flex items-center justify-between">
+            <div key={position.id} className="border border-slate-200 rounded-xl p-5 bg-white shadow-sm flex items-center justify-between">
               <div>
-                <p className="font-medium text-zinc-900 dark:text-white">{position.role_name}</p>
+                <p className="font-medium text-navy">{position.role_name}</p>
                 {position.description && (
-                  <p className="text-sm text-zinc-600 dark:text-zinc-400">{position.description}</p>
+                  <p className="text-sm text-secondary">{position.description}</p>
                 )}
               </div>
 
@@ -131,12 +131,12 @@ export default function ProjectDetail() {
                 <button
                   onClick={() => handleApply(position.id)}
                   disabled={applyingTo === position.id}
-                  className="text-xs px-3 py-1.5 rounded-md bg-zinc-900 text-white dark:bg-white dark:text-zinc-900 disabled:opacity-50"
+                  className="text-xs px-3 py-1.5 rounded-md bg-accent text-white hover:bg-accent-hover disabled:opacity-50"
                 >
                   {applyingTo === position.id ? "Applying..." : "Apply"}
                 </button>
               ) : (
-                <span className="text-xs px-2 py-1 rounded-md bg-zinc-100 text-zinc-500 dark:bg-zinc-800">
+                <span className="text-xs px-2 py-1 rounded-md bg-surface text-secondary">
                   filled
                 </span>
               )}
@@ -144,7 +144,7 @@ export default function ProjectDetail() {
           ))}
 
           {positions.length === 0 && (
-            <p className="text-zinc-500 text-sm">No positions listed.</p>
+            <p className="text-secondary text-sm">No positions listed.</p>
           )}
         </div>
       </div>

@@ -1,10 +1,10 @@
 "use client";
 
 function getColor(count) {
-  if (!count) return "bg-zinc-100 dark:bg-zinc-800";
-  if (count === 1) return "bg-green-200 dark:bg-green-900";
-  if (count === 2) return "bg-green-400 dark:bg-green-700";
-  return "bg-green-600 dark:bg-green-500";
+  if (!count) return "bg-surface";
+  if (count === 1) return "bg-accent/30";
+  if (count === 2) return "bg-accent/60";
+  return "bg-accent";
 }
 
 export default function ActivityHeatmap({ activity }) {
@@ -25,7 +25,7 @@ export default function ActivityHeatmap({ activity }) {
 
   return (
     <div>
-      <h2 className="text-sm font-medium text-zinc-900 dark:text-white mb-3">Activity</h2>
+      <h2 className="text-base font-semibold text-navy mb-3">Activity</h2>
       <div className="flex gap-1 overflow-x-auto pb-2">
         {weeks.map((week, wi) => (
           <div key={wi} className="flex flex-col gap-1">
@@ -39,7 +39,7 @@ export default function ActivityHeatmap({ activity }) {
           </div>
         ))}
       </div>
-      <p className="text-xs text-zinc-500 mt-2">Last 120 days</p>
+      <p className="text-xs text-secondary mt-2">Last 120 days</p>
     </div>
   );
 }

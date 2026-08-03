@@ -16,44 +16,46 @@ export default function Navbar() {
   }
 
   return (
-    <nav className="flex items-center justify-between max-w-5xl mx-auto px-6 py-4 w-full">
-      <a href="/" className="text-lg font-semibold text-zinc-900 dark:text-white">
-        &lt;/&gt; ErNord
-      </a>
-
-      <div className="flex items-center gap-4 text-sm">
-        <a href="/discover" className="text-zinc-700 dark:text-zinc-300 hover:text-zinc-900 dark:hover:text-white">
-          Discover
+    <nav className="border-b border-slate-200 bg-white">
+      <div className="flex items-center justify-between max-w-5xl mx-auto px-6 py-4 w-full">
+        <a href="/" className="text-lg font-semibold text-navy tracking-tight">
+          Ernord
         </a>
 
-        {isLoggedIn ? (
-          <>
-            <a href="/create-project" className="text-zinc-700 dark:text-zinc-300 hover:text-zinc-900 dark:hover:text-white">
-              Publish project
-            </a>
-            <a href="/my-projects" className="text-zinc-700 dark:text-zinc-300 hover:text-zinc-900 dark:hover:text-white">
-              My projects
-            </a>
-            <a href="/profile" className="text-zinc-700 dark:text-zinc-300 hover:text-zinc-900 dark:hover:text-white">
-              Profile
-            </a>
-            <button
-              onClick={handleLogout}
-              className="px-3 py-1.5 text-zinc-700 dark:text-zinc-300 hover:text-zinc-900 dark:hover:text-white"
-            >
-              Log out
-            </button>
-          </>
-        ) : (
-          <>
-            <a href="/login" className="text-zinc-700 dark:text-zinc-300 hover:text-zinc-900 dark:hover:text-white">
-              Log in
-            </a>
-            <a href="/register" className="px-3 py-1.5 bg-zinc-900 text-white rounded-lg font-medium hover:bg-zinc-800 dark:bg-white dark:text-zinc-900">
-              Sign up
-            </a>
-          </>
-        )}
+        <div className="flex items-center gap-6 text-sm">
+          <a href="/discover" className="text-secondary hover:text-navy">
+            Discover
+          </a>
+
+          {isLoggedIn ? (
+            <>
+              <a href="/create-project" className="text-secondary hover:text-navy">
+                Publish project
+              </a>
+              <a href="/my-projects" className="text-secondary hover:text-navy">
+                My projects
+              </a>
+              <a href="/profile" className="text-secondary hover:text-navy">
+                Profile
+              </a>
+              <button
+                onClick={handleLogout}
+                className="px-3 py-1.5 rounded-lg border border-slate-300 text-navy hover:bg-surface"
+              >
+                Log out
+              </button>
+            </>
+          ) : (
+            <>
+              <a href="/login" className="text-secondary hover:text-navy">
+                Log in
+              </a>
+              <a href="/register" className="px-3 py-1.5 bg-accent text-white rounded-lg font-medium hover:bg-accent-hover">
+                Sign up
+              </a>
+            </>
+          )}
+        </div>
       </div>
     </nav>
   );

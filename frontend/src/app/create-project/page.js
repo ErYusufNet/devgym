@@ -91,9 +91,9 @@ export default function CreateProject() {
   }
 
   return (
-    <div className="min-h-screen bg-white dark:bg-zinc-950 px-6 py-12">
+    <div className="min-h-screen bg-white px-6 py-12">
       <div className="max-w-lg mx-auto">
-        <h1 className="text-2xl font-semibold text-zinc-900 dark:text-white mb-8">Publish a project</h1>
+        <h1 className="text-3xl font-semibold text-navy mb-8">Publish a project</h1>
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
           <input
@@ -102,7 +102,7 @@ export default function CreateProject() {
             value={title}
             onChange={(e) => setTitle(e.target.value)}
             required
-            className="px-4 py-2 border border-zinc-300 dark:border-zinc-700 rounded-lg bg-white dark:bg-zinc-900 text-zinc-900 dark:text-white"
+            className="px-4 py-2 border border-slate-300 rounded-lg bg-white text-navy placeholder:text-secondary focus:outline-none focus:border-accent"
           />
 
           <textarea
@@ -111,7 +111,7 @@ export default function CreateProject() {
             onChange={(e) => setDescription(e.target.value)}
             required
             rows={4}
-            className="px-4 py-2 border border-zinc-300 dark:border-zinc-700 rounded-lg bg-white dark:bg-zinc-900 text-zinc-900 dark:text-white"
+            className="px-4 py-2 border border-slate-300 rounded-lg bg-white text-navy placeholder:text-secondary focus:outline-none focus:border-accent"
           />
 
           <input
@@ -119,7 +119,7 @@ export default function CreateProject() {
             placeholder="Tech stack (comma separated, e.g. React, FastAPI)"
             value={techStack}
             onChange={(e) => setTechStack(e.target.value)}
-            className="px-4 py-2 border border-zinc-300 dark:border-zinc-700 rounded-lg bg-white dark:bg-zinc-900 text-zinc-900 dark:text-white"
+            className="px-4 py-2 border border-slate-300 rounded-lg bg-white text-navy placeholder:text-secondary focus:outline-none focus:border-accent"
           />
 
           <input
@@ -127,13 +127,13 @@ export default function CreateProject() {
             placeholder="GitHub repository URL"
             value={githubUrl}
             onChange={(e) => setGithubUrl(e.target.value)}
-            className="px-4 py-2 border border-zinc-300 dark:border-zinc-700 rounded-lg bg-white dark:bg-zinc-900 text-zinc-900 dark:text-white"
+            className="px-4 py-2 border border-slate-300 rounded-lg bg-white text-navy placeholder:text-secondary focus:outline-none focus:border-accent"
           />
 
           <select
             value={projectType}
             onChange={(e) => setProjectType(e.target.value)}
-            className="px-4 py-2 border border-zinc-300 dark:border-zinc-700 rounded-lg bg-white dark:bg-zinc-900 text-zinc-900 dark:text-white"
+            className="px-4 py-2 border border-slate-300 rounded-lg bg-white text-navy focus:outline-none focus:border-accent"
           >
             {PROJECT_TYPES.map((type) => (
               <option key={type} value={type}>{type}</option>
@@ -146,14 +146,14 @@ export default function CreateProject() {
               placeholder="Duration (weeks)"
               value={durationWeeks}
               onChange={(e) => setDurationWeeks(e.target.value)}
-              className="flex-1 px-4 py-2 border border-zinc-300 dark:border-zinc-700 rounded-lg bg-white dark:bg-zinc-900 text-zinc-900 dark:text-white"
+              className="flex-1 px-4 py-2 border border-slate-300 rounded-lg bg-white text-navy placeholder:text-secondary focus:outline-none focus:border-accent"
             />
             <input
               type="number"
               placeholder="Hours / week"
               value={weeklyHours}
               onChange={(e) => setWeeklyHours(e.target.value)}
-              className="flex-1 px-4 py-2 border border-zinc-300 dark:border-zinc-700 rounded-lg bg-white dark:bg-zinc-900 text-zinc-900 dark:text-white"
+              className="flex-1 px-4 py-2 border border-slate-300 rounded-lg bg-white text-navy placeholder:text-secondary focus:outline-none focus:border-accent"
             />
           </div>
 
@@ -162,11 +162,11 @@ export default function CreateProject() {
             placeholder="Timezone (e.g. Europe/Helsinki)"
             value={timezone}
             onChange={(e) => setTimezone(e.target.value)}
-            className="px-4 py-2 border border-zinc-300 dark:border-zinc-700 rounded-lg bg-white dark:bg-zinc-900 text-zinc-900 dark:text-white"
+            className="px-4 py-2 border border-slate-300 rounded-lg bg-white text-navy placeholder:text-secondary focus:outline-none focus:border-accent"
           />
 
-          <div className="border-t border-zinc-200 dark:border-zinc-800 pt-4 mt-2">
-            <p className="text-sm font-medium text-zinc-900 dark:text-white mb-3">Open positions</p>
+          <div className="border-t border-slate-200 pt-4 mt-2">
+            <p className="text-sm font-semibold text-navy mb-3">Open positions</p>
 
             <div className="flex flex-col gap-3">
               {positions.map((position, index) => (
@@ -176,20 +176,20 @@ export default function CreateProject() {
                     placeholder="Role (e.g. Frontend Developer)"
                     value={position.role_name}
                     onChange={(e) => updatePosition(index, "role_name", e.target.value)}
-                    className="flex-1 px-3 py-2 border border-zinc-300 dark:border-zinc-700 rounded-lg bg-white dark:bg-zinc-900 text-zinc-900 dark:text-white text-sm"
+                    className="flex-1 px-3 py-2 border border-slate-300 rounded-lg bg-white text-navy placeholder:text-secondary focus:outline-none focus:border-accent text-sm"
                   />
                   <input
                     type="text"
                     placeholder="Description (optional)"
                     value={position.description}
                     onChange={(e) => updatePosition(index, "description", e.target.value)}
-                    className="flex-1 px-3 py-2 border border-zinc-300 dark:border-zinc-700 rounded-lg bg-white dark:bg-zinc-900 text-zinc-900 dark:text-white text-sm"
+                    className="flex-1 px-3 py-2 border border-slate-300 rounded-lg bg-white text-navy placeholder:text-secondary focus:outline-none focus:border-accent text-sm"
                   />
                   {positions.length > 1 && (
                     <button
                       type="button"
                       onClick={() => removePositionRow(index)}
-                      className="px-2 text-zinc-400 hover:text-red-500"
+                      className="px-2 text-secondary hover:text-red-500"
                     >
                       ✕
                     </button>
@@ -201,7 +201,7 @@ export default function CreateProject() {
             <button
               type="button"
               onClick={addPositionRow}
-              className="text-sm text-zinc-600 dark:text-zinc-400 underline mt-3"
+              className="text-sm text-accent hover:text-accent-hover font-medium mt-3"
             >
               + Add another position
             </button>
@@ -212,7 +212,7 @@ export default function CreateProject() {
           <button
             type="submit"
             disabled={loading}
-            className="px-4 py-2 bg-zinc-900 text-white rounded-lg font-medium hover:bg-zinc-800 dark:bg-white dark:text-zinc-900 disabled:opacity-50 mt-2"
+            className="px-4 py-2 bg-accent text-white rounded-lg font-medium hover:bg-accent-hover disabled:opacity-50 mt-2"
           >
             {loading ? "Publishing..." : "Publish project"}
           </button>
