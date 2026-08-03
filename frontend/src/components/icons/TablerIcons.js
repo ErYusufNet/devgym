@@ -144,3 +144,77 @@ export function IconBrandLinkedin({ className = "w-5 h-5" }) {
     </svg>
   );
 }
+
+export function IconWorld({ className = "w-5 h-5" }) {
+  return (
+    <svg {...base} className={className}>
+      <path d="M3 12a9 9 0 1 0 18 0a9 9 0 0 0 -18 0" />
+      <path d="M3.6 9h16.8" />
+      <path d="M3.6 15h16.8" />
+      <path d="M11.5 3a17 17 0 0 0 0 18" />
+      <path d="M12.5 3a17 17 0 0 1 0 18" />
+    </svg>
+  );
+}
+
+export function IconDeviceMobile({ className = "w-5 h-5" }) {
+  return (
+    <svg {...base} className={className}>
+      <path d="M6 5a2 2 0 0 1 2 -2h8a2 2 0 0 1 2 2v14a2 2 0 0 1 -2 2h-8a2 2 0 0 1 -2 -2v-14" />
+      <path d="M11 4h2" />
+      <path d="M12 17v.01" />
+    </svg>
+  );
+}
+
+export function IconCloud({ className = "w-5 h-5" }) {
+  return (
+    <svg {...base} className={className}>
+      <path d="M6.657 18c-2.572 0 -4.657 -2.007 -4.657 -4.483c0 -2.475 2.085 -4.482 4.657 -4.482c.393 -1.762 1.794 -3.2 3.675 -3.773c1.88 -.572 3.956 -.193 5.444 1c1.488 1.19 2.162 3.007 1.77 4.769h.99c1.913 0 3.464 1.56 3.464 3.486c0 1.927 -1.551 3.487 -3.465 3.487h-11.878" />
+    </svg>
+  );
+}
+
+export function IconDeviceDesktop({ className = "w-5 h-5" }) {
+  return (
+    <svg {...base} className={className}>
+      <path d="M3 5a1 1 0 0 1 1 -1h16a1 1 0 0 1 1 1v10a1 1 0 0 1 -1 1h-16a1 1 0 0 1 -1 -1v-10" />
+      <path d="M7 20h10" />
+      <path d="M9 16v4" />
+      <path d="M15 16v4" />
+    </svg>
+  );
+}
+
+export function IconApi({ className = "w-5 h-5" }) {
+  return (
+    <svg {...base} className={className}>
+      <path d="M4 13h5" />
+      <path d="M12 16v-8h3a2 2 0 0 1 2 2v1a2 2 0 0 1 -2 2h-3" />
+      <path d="M20 8v8" />
+      <path d="M9 16v-5.5a2.5 2.5 0 0 0 -5 0v5.5" />
+    </svg>
+  );
+}
+
+export function IconDeviceGamepad2({ className = "w-5 h-5" }) {
+  return (
+    <svg {...base} className={className}>
+      <path d="M12 5h3.5a5 5 0 0 1 0 10h-5.5l-4.015 4.227a2.3 2.3 0 0 1 -3.923 -2.035l1.634 -8.173a5 5 0 0 1 4.904 -4.019h3.4" />
+      <path d="M14 15l4.07 4.284a2.3 2.3 0 0 0 3.925 -2.023l-1.6 -8.232" />
+      <path d="M8 9v2" />
+      <path d="M7 10h2" />
+      <path d="M14 10h2" />
+    </svg>
+  );
+}
+
+export function IconFlask({ className = "w-5 h-5" }) {
+  return (
+    <svg {...base} className={className}>
+      <path d="M9 3l6 0" />
+      <path d="M10 9l4 0" />
+      <path d="M10 3v6l-4 11a.7 .7 0 0 0 .5 1h11a.7 .7 0 0 0 .5 -1l-4 -11v-6" />
+    </svg>
+  );
+}

@@ -2,6 +2,9 @@
 
 import { useEffect, useState } from "react";
 import ActivityHeatmap from "@/components/ActivityHeatmap";
+import ScrollReveal from "@/components/ScrollReveal";
+import IconBadge from "@/components/IconBadge";
+import { IconBriefcase, IconSchool, IconCode, IconFolder } from "@/components/icons/TablerIcons";
 
 export default function Profile() {
   const [profile, setProfile] = useState(null);
@@ -68,7 +71,7 @@ export default function Profile() {
   return (
     <div className="min-h-screen bg-white px-6 py-12">
       <div className="max-w-2xl mx-auto">
-        <div className="flex items-center justify-between gap-4 mb-8">
+        <ScrollReveal className="flex items-center justify-between gap-4 mb-8">
           <div className="flex items-center gap-4">
             <div className="w-16 h-16 rounded-full bg-surface flex items-center justify-center text-xl font-medium text-navy">
               {profile.full_name ? profile.full_name[0].toUpperCase() : "?"}
@@ -85,7 +88,7 @@ export default function Profile() {
           >
             Edit profile
           </a>
-        </div>
+        </ScrollReveal>
 
         <div className="flex flex-wrap gap-3 mb-8 text-sm">
           {profile.experience_level && (
@@ -108,19 +111,25 @@ export default function Profile() {
         </div>
 
         {profile.skills && profile.skills.length > 0 && (
-          <div className="mb-10">
-            <h2 className="text-base font-semibold text-navy mb-2">Skills</h2>
+          <ScrollReveal className="mb-10">
+            <div className="flex items-center gap-3 mb-3">
+              <IconBadge icon={IconCode} color="pink" size="sm" />
+              <h2 className="text-base font-semibold text-navy">Skills</h2>
+            </div>
             <div className="flex flex-wrap gap-2">
               {profile.skills.map((skill) => (
                 <span key={skill} className="text-xs px-2 py-1 rounded-md bg-surface text-navy">{skill}</span>
               ))}
             </div>
-          </div>
+          </ScrollReveal>
         )}
 
-        <div className="mb-10">
+        <ScrollReveal className="mb-10">
           <div className="flex items-center justify-between mb-3">
-            <h2 className="text-base font-semibold text-navy">Work experience</h2>
+            <div className="flex items-center gap-3">
+              <IconBadge icon={IconBriefcase} color="blue" size="sm" />
+              <h2 className="text-base font-semibold text-navy">Work experience</h2>
+            </div>
             <a
               href="/profile/work-experience/new"
               className="text-xs px-2 py-1 rounded-md border border-slate-300 text-navy hover:bg-surface"
@@ -130,29 +139,35 @@ export default function Profile() {
           </div>
           <div className="flex flex-col gap-3">
             {workExperience.map((item) => (
-              <div key={item.id} className="border border-slate-200 rounded-xl p-5 bg-white shadow-sm flex items-start justify-between gap-3">
-                <div>
-                  <p className="font-medium text-navy">{item.role} · {item.company}</p>
-                  <p className="text-xs text-secondary mb-1">{item.start_date} – {item.end_date || "Present"}</p>
-                  {item.description && <p className="text-sm text-secondary">{item.description}</p>}
+              <div key={item.id} className="border border-slate-200 rounded-xl p-5 bg-white shadow-sm hover:shadow-md transition-shadow flex items-start gap-4">
+                <IconBadge icon={IconBriefcase} color="blue" size="sm" />
+                <div className="flex-1 flex items-start justify-between gap-3">
+                  <div>
+                    <p className="font-medium text-navy">{item.role} · {item.company}</p>
+                    <p className="text-xs text-secondary mb-1">{item.start_date} – {item.end_date || "Present"}</p>
+                    {item.description && <p className="text-sm text-secondary">{item.description}</p>}
+                  </div>
+                  <button
+                    onClick={() => handleDeleteWorkExperience(item.id)}
+                    className="text-secondary hover:text-red-500 shrink-0"
+                  >
+                    ✕
+                  </button>
                 </div>
-                <button
-                  onClick={() => handleDeleteWorkExperience(item.id)}
-                  className="text-secondary hover:text-red-500 shrink-0"
-                >
-                  ✕
-                </button>
               </div>
             ))}
             {workExperience.length === 0 && (
               <p className="text-sm text-secondary">No work experience added yet.</p>
             )}
           </div>
-        </div>
+        </ScrollReveal>
 
-        <div className="mb-10">
+        <ScrollReveal className="mb-10">
           <div className="flex items-center justify-between mb-3">
-            <h2 className="text-base font-semibold text-navy">Education</h2>
+            <div className="flex items-center gap-3">
+              <IconBadge icon={IconSchool} color="purple" size="sm" />
+              <h2 className="text-base font-semibold text-navy">Education</h2>
+            </div>
             <a
               href="/profile/education/new"
               className="text-xs px-2 py-1 rounded-md border border-slate-300 text-navy hover:bg-surface"
@@ -162,35 +177,41 @@ export default function Profile() {
           </div>
           <div className="flex flex-col gap-3">
             {education.map((item) => (
-              <div key={item.id} className="border border-slate-200 rounded-xl p-5 bg-white shadow-sm flex items-start justify-between gap-3">
-                <div>
-                  <p className="font-medium text-navy">{item.degree} · {item.school}</p>
-                  <p className="text-xs text-secondary mb-1">{item.start_date} – {item.end_date || "Present"}</p>
-                  {item.description && <p className="text-sm text-secondary">{item.description}</p>}
+              <div key={item.id} className="border border-slate-200 rounded-xl p-5 bg-white shadow-sm hover:shadow-md transition-shadow flex items-start gap-4">
+                <IconBadge icon={IconSchool} color="purple" size="sm" />
+                <div className="flex-1 flex items-start justify-between gap-3">
+                  <div>
+                    <p className="font-medium text-navy">{item.degree} · {item.school}</p>
+                    <p className="text-xs text-secondary mb-1">{item.start_date} – {item.end_date || "Present"}</p>
+                    {item.description && <p className="text-sm text-secondary">{item.description}</p>}
+                  </div>
+                  <button
+                    onClick={() => handleDeleteEducation(item.id)}
+                    className="text-secondary hover:text-red-500 shrink-0"
+                  >
+                    ✕
+                  </button>
                 </div>
-                <button
-                  onClick={() => handleDeleteEducation(item.id)}
-                  className="text-secondary hover:text-red-500 shrink-0"
-                >
-                  ✕
-                </button>
               </div>
             ))}
             {education.length === 0 && (
               <p className="text-sm text-secondary">No education added yet.</p>
             )}
           </div>
-        </div>
+        </ScrollReveal>
 
-        <div className="mb-10">
+        <ScrollReveal className="mb-10">
           <ActivityHeatmap activity={activity} />
-        </div>
+        </ScrollReveal>
 
-        <div className="mb-10">
-          <h2 className="text-base font-semibold text-navy mb-3">Projects published ({profile.owned_projects.length})</h2>
+        <ScrollReveal className="mb-10">
+          <div className="flex items-center gap-3 mb-3">
+            <IconBadge icon={IconFolder} color="blue" size="sm" />
+            <h2 className="text-base font-semibold text-navy">Projects published ({profile.owned_projects.length})</h2>
+          </div>
           <div className="flex flex-col gap-2">
             {profile.owned_projects.map((p) => (
-              <a key={p.id} href={"/projects/" + p.id} className="border border-slate-200 rounded-lg px-4 py-2 text-sm text-navy hover:bg-surface flex items-center justify-between">
+              <a key={p.id} href={"/projects/" + p.id} className="border border-slate-200 rounded-xl px-4 py-3 text-sm text-navy shadow-sm hover:shadow-md transition-shadow flex items-center justify-between">
                 <span>{p.title}</span>
                 <span className="text-xs text-secondary capitalize">{p.status}</span>
               </a>
@@ -199,13 +220,16 @@ export default function Profile() {
               <p className="text-sm text-secondary">No projects published yet.</p>
             )}
           </div>
-        </div>
+        </ScrollReveal>
 
-        <div>
-          <h2 className="text-base font-semibold text-navy mb-3">Projects joined ({profile.joined_projects.length})</h2>
+        <ScrollReveal>
+          <div className="flex items-center gap-3 mb-3">
+            <IconBadge icon={IconFolder} color="purple" size="sm" />
+            <h2 className="text-base font-semibold text-navy">Projects joined ({profile.joined_projects.length})</h2>
+          </div>
           <div className="flex flex-col gap-2">
             {profile.joined_projects.map((p) => (
-              <a key={p.id} href={"/projects/" + p.id} className="border border-slate-200 rounded-lg px-4 py-2 text-sm text-navy hover:bg-surface flex items-center justify-between">
+              <a key={p.id} href={"/projects/" + p.id} className="border border-slate-200 rounded-xl px-4 py-3 text-sm text-navy shadow-sm hover:shadow-md transition-shadow flex items-center justify-between">
                 <span>{p.title}</span>
                 <span className="text-xs text-secondary capitalize">{p.status}</span>
               </a>
@@ -214,7 +238,7 @@ export default function Profile() {
               <p className="text-sm text-secondary">Haven&apos;t joined any projects yet.</p>
             )}
           </div>
-        </div>
+        </ScrollReveal>
       </div>
     </div>
   );
