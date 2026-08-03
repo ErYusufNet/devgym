@@ -43,6 +43,7 @@ class UserOut(BaseModel):
         from_attributes = True
 
 
+# my name is there so i wouldnt be more proud 
 # ---------- Project ----------
 
 class ProjectCreate(BaseModel):
@@ -120,6 +121,54 @@ class TeamMemberOut(BaseModel):
     position_id: str
     joined_at: datetime
     left_at: Optional[datetime] = None
+
+    class Config:
+        from_attributes = True
+
+
+# ---------- Work Experience ----------
+
+class WorkExperienceCreate(BaseModel):
+    company: str
+    role: str
+    start_date: str
+    end_date: Optional[str] = None
+    description: Optional[str] = None
+
+
+class WorkExperienceOut(BaseModel):
+    id: str
+    user_id: str
+    company: str
+    role: str
+    start_date: str
+    end_date: Optional[str]
+    description: Optional[str]
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
+# ---------- Education ----------
+
+class EducationCreate(BaseModel):
+    school: str
+    degree: str
+    start_date: str
+    end_date: Optional[str] = None
+    description: Optional[str] = None
+
+
+class EducationOut(BaseModel):
+    id: str
+    user_id: str
+    school: str
+    degree: str
+    start_date: str
+    end_date: Optional[str]
+    description: Optional[str]
+    created_at: datetime
 
     class Config:
         from_attributes = True

@@ -24,7 +24,7 @@ app.add_middleware(
 
 @app.get("/")
 def read_root():
-    return {"message": "DevGym API is running"}
+    return {"message": "ErNord API is running"}
 
 
 # ---------- Users ----------
@@ -87,6 +87,21 @@ def get_user_profile(user_id: str, db: Session = Depends(get_db)):
     }
 
 
+@app.put("/users/{user_id}", response_model=schemas.UserOut)
+def update_user(user_id: str, updates: schemas.UserUpdate, db: Session = Depends(get_db)):
+    user = db.query(models.User).filter(models.User.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    update_data = updates.dict(exclude_unset=True)
+    for field, value in update_data.items():
+        setattr(user, field, value)
+
+    db.commit()
+    db.refresh(user)
+    return user
+
+
 @app.get("/users/{user_id}/activity")
 def get_user_activity(user_id: str, db: Session = Depends(get_db)):
     user = db.query(models.User).filter(models.User.id == user_id).first()
@@ -109,6 +124,82 @@ def get_user_activity(user_id: str, db: Session = Depends(get_db)):
         counts[d] = counts.get(d, 0) + 1
 
     return counts
+
+
+# ---------- Work Experience ----------
+
+@app.post("/users/{user_id}/work-experience", response_model=schemas.WorkExperienceOut)
+def create_work_experience(user_id: str, experience: schemas.WorkExperienceCreate, db: Session = Depends(get_db)):
+    user = db.query(models.User).filter(models.User.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    new_experience = models.WorkExperience(
+        user_id=user_id,
+        company=experience.company,
+        role=experience.role,
+        start_date=experience.start_date,
+        end_date=experience.end_date,
+        description=experience.description,
+    )
+    db.add(new_experience)
+    db.commit()
+    db.refresh(new_experience)
+    return new_experience
+
+
+@app.get("/users/{user_id}/work-experience", response_model=list[schemas.WorkExperienceOut])
+def list_work_experience(user_id: str, db: Session = Depends(get_db)):
+    return db.query(models.WorkExperience).filter(models.WorkExperience.user_id == user_id).all()
+
+
+@app.delete("/work-experience/{experience_id}")
+def delete_work_experience(experience_id: str, db: Session = Depends(get_db)):
+    experience = db.query(models.WorkExperience).filter(models.WorkExperience.id == experience_id).first()
+    if not experience:
+        raise HTTPException(status_code=404, detail="Work experience not found")
+
+    db.delete(experience)
+    db.commit()
+    return {"ok": True}
+
+
+# ---------- Education ----------
+
+@app.post("/users/{user_id}/education", response_model=schemas.EducationOut)
+def create_education(user_id: str, education: schemas.EducationCreate, db: Session = Depends(get_db)):
+    user = db.query(models.User).filter(models.User.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    new_education = models.Education(
+        user_id=user_id,
+        school=education.school,
+        degree=education.degree,
+        start_date=education.start_date,
+        end_date=education.end_date,
+        description=education.description,
+    )
+    db.add(new_education)
+    db.commit()
+    db.refresh(new_education)
+    return new_education
+
+
+@app.get("/users/{user_id}/education", response_model=list[schemas.EducationOut])
+def list_education(user_id: str, db: Session = Depends(get_db)):
+    return db.query(models.Education).filter(models.Education.user_id == user_id).all()
+
+
+@app.delete("/education/{education_id}")
+def delete_education(education_id: str, db: Session = Depends(get_db)):
+    education = db.query(models.Education).filter(models.Education.id == education_id).first()
+    if not education:
+        raise HTTPException(status_code=404, detail="Education not found")
+
+    db.delete(education)
+    db.commit()
+    return {"ok": True}
 
 
 # ---------- Projects ----------
