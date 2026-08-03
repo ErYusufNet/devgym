@@ -2,6 +2,9 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import ScrollReveal from "@/components/ScrollReveal";
+import IconBadge from "@/components/IconBadge";
+import { IconRocket, IconUsers } from "@/components/icons/TablerIcons";
 
 const PROJECT_TYPES = ["web", "mobile", "saas", "desktop", "api", "game", "testing"];
 
@@ -93,9 +96,16 @@ export default function CreateProject() {
   return (
     <div className="min-h-screen bg-white px-6 py-12">
       <div className="max-w-lg mx-auto">
-        <h1 className="text-3xl font-semibold text-navy mb-8">Publish a project</h1>
+        <ScrollReveal className="mb-8">
+          <IconBadge icon={IconRocket} color="blue" />
+          <h1 className="text-3xl font-semibold text-navy mt-4 mb-2">Publish a project</h1>
+          <p className="text-secondary">Share your idea, open up roles, and start building with a team.</p>
+        </ScrollReveal>
 
-        <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+        <form
+          onSubmit={handleSubmit}
+          className="flex flex-col gap-4 border border-slate-200 rounded-xl shadow-sm bg-white p-6 sm:p-8"
+        >
           <input
             type="text"
             placeholder="Project title"
@@ -166,7 +176,10 @@ export default function CreateProject() {
           />
 
           <div className="border-t border-slate-200 pt-4 mt-2">
-            <p className="text-sm font-semibold text-navy mb-3">Open positions</p>
+            <div className="flex items-center gap-3 mb-3">
+              <IconBadge icon={IconUsers} color="purple" size="sm" />
+              <p className="text-sm font-semibold text-navy">Open positions</p>
+            </div>
 
             <div className="flex flex-col gap-3">
               {positions.map((position, index) => (
