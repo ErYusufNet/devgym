@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { authFetch } from "@/lib/authFetch";
 
 const EXPERIENCE_LEVELS = ["student", "junior", "mid", "senior"];
 
@@ -53,7 +54,7 @@ export default function EditProfile() {
     setError("");
 
     const userId = localStorage.getItem("devgym_user_id");
-    if (!userId) {
+    if (!userId || !localStorage.getItem("devgym_token")) {
       setError("Please log in to edit your profile.");
       return;
     }
@@ -61,7 +62,7 @@ export default function EditProfile() {
     setSaving(true);
 
     try {
-      const res = await fetch("http://127.0.0.1:8000/users/" + userId, {
+      const res = await authFetch("http://127.0.0.1:8000/users/" + userId, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

@@ -6,6 +6,7 @@ import ScrollReveal from "@/components/ScrollReveal";
 import IconBadge from "@/components/IconBadge";
 import { IconUsers } from "@/components/icons/TablerIcons";
 import { getProjectTypeMeta } from "@/lib/projectTypeMeta";
+import { authFetch } from "@/lib/authFetch";
 
 export default function ProjectDetail() {
   const { id } = useParams();
@@ -43,9 +44,8 @@ export default function ProjectDetail() {
 
   async function handleApply(positionId) {
     setMessage("");
-    const userId = localStorage.getItem("devgym_user_id");
 
-    if (!userId) {
+    if (!localStorage.getItem("devgym_token")) {
       setMessage("Please log in to apply.");
       return;
     }
@@ -53,12 +53,11 @@ export default function ProjectDetail() {
     setApplyingTo(positionId);
 
     try {
-      const res = await fetch("http://127.0.0.1:8000/applications", {
+      const res = await authFetch("http://127.0.0.1:8000/applications", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           position_id: positionId,
-          user_id: userId,
         }),
       });
 

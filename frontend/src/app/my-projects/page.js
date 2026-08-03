@@ -67,7 +67,7 @@ export default function MyProjects() {
   async function handleReject(applicationId) {
     setActionMessage("");
     try {
-      const res = await fetch(`http://127.0.0.1:8000/applications/${applicationId}/reject`, {
+      const res = await authFetch(`http://127.0.0.1:8000/applications/${applicationId}/reject`, {
         method: "POST",
       });
       if (!res.ok) {
@@ -83,11 +83,10 @@ export default function MyProjects() {
 
   async function handleConfirmDelete() {
     if (!deleteTarget) return;
-    const userId = localStorage.getItem("devgym_user_id");
     setDeleting(true);
 
     try {
-      const res = await fetch(`http://127.0.0.1:8000/projects/${deleteTarget.id}?owner_id=${userId}`, {
+      const res = await authFetch(`http://127.0.0.1:8000/projects/${deleteTarget.id}`, {
         method: "DELETE",
       });
       if (!res.ok) {
