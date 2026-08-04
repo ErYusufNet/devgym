@@ -6,6 +6,7 @@ import ScrollReveal from "@/components/ScrollReveal";
 import IconBadge from "@/components/IconBadge";
 import { IconUserPlus } from "@/components/icons/TablerIcons";
 import FloatingTechLogosFixed from "@/components/FloatingTechLogosFixed";
+import { API_URL } from "@/lib/api";
 
 export default function Register() {
   const router = useRouter();
@@ -22,7 +23,7 @@ export default function Register() {
     setLoading(true);
 
     try {
-      const res = await fetch("http://127.0.0.1:8000/users", {
+      const res = await fetch(`${API_URL}/users`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

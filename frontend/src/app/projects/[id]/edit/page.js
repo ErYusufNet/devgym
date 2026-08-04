@@ -5,6 +5,7 @@ import { useParams, useRouter } from "next/navigation";
 import { authFetch } from "@/lib/authFetch";
 import { POSITION_ROLES } from "@/lib/roles";
 import FloatingTechLogosFixed from "@/components/FloatingTechLogosFixed";
+import { API_URL } from "@/lib/api";
 
 const PROJECT_TYPES = ["web", "mobile", "saas", "desktop", "api", "game", "testing"];
 
@@ -35,7 +36,7 @@ export default function EditProject() {
       const userId = localStorage.getItem("devgym_user_id");
 
       try {
-        const res = await fetch(`http://127.0.0.1:8000/projects/${id}`);
+        const res = await fetch(`${API_URL}/projects/${id}`);
         if (!res.ok) throw new Error("Project not found");
         const project = await res.json();
 
@@ -54,7 +55,7 @@ export default function EditProject() {
         setWeeklyHours(project.weekly_hours || "");
         setTimezone(project.timezone || "");
 
-        const positionsRes = await fetch(`http://127.0.0.1:8000/projects/${id}/positions`);
+        const positionsRes = await fetch(`${API_URL}/projects/${id}/positions`);
         setPositions(await positionsRes.json());
       } catch (err) {
         setError(err.message);
@@ -77,7 +78,7 @@ export default function EditProject() {
     setSaving(true);
 
     try {
-      const res = await authFetch(`http://127.0.0.1:8000/projects/${id}`, {
+      const res = await authFetch(`${API_URL}/projects/${id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -110,7 +111,7 @@ export default function EditProject() {
     setAddingPosition(true);
 
     try {
-      const res = await authFetch(`http://127.0.0.1:8000/projects/${id}/positions`, {
+      const res = await authFetch(`${API_URL}/projects/${id}/positions`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -136,7 +137,7 @@ export default function EditProject() {
   }
 
   async function handleDeletePosition(positionId) {
-    await authFetch(`http://127.0.0.1:8000/projects/${id}/positions/${positionId}`, {
+    await authFetch(`${API_URL}/projects/${id}/positions/${positionId}`, {
       method: "DELETE",
     });
     setPositions(positions.filter((p) => p.id !== positionId));

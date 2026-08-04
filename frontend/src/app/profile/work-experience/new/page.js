@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import FloatingTechLogosFixed from "@/components/FloatingTechLogosFixed";
+import { API_URL } from "@/lib/api";
 
 export default function AddWorkExperience() {
   const router = useRouter();
@@ -28,7 +29,7 @@ export default function AddWorkExperience() {
     setSaving(true);
 
     try {
-      const res = await fetch("http://127.0.0.1:8000/users/" + userId + "/work-experience", {
+      const res = await fetch(API_URL + "/users/" + userId + "/work-experience", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

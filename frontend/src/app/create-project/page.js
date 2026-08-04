@@ -8,6 +8,7 @@ import { IconRocket, IconUsers } from "@/components/icons/TablerIcons";
 import { authFetch } from "@/lib/authFetch";
 import { POSITION_ROLES } from "@/lib/roles";
 import FloatingTechLogosFixed from "@/components/FloatingTechLogosFixed";
+import { API_URL } from "@/lib/api";
 
 const PROJECT_TYPES = ["web", "mobile", "saas", "desktop", "api", "game", "testing"];
 
@@ -36,7 +37,7 @@ export default function CreateProject() {
       const userId = localStorage.getItem("devgym_user_id");
       if (!userId) return;
       try {
-        const res = await fetch("http://127.0.0.1:8000/users/" + userId + "/profile");
+        const res = await fetch(API_URL + "/users/" + userId + "/profile");
         if (!res.ok) return;
         const data = await res.json();
         setGithubConnected(!!data.github_connected);
@@ -50,7 +51,7 @@ export default function CreateProject() {
   async function handleConnectGithub() {
     setConnectingGithub(true);
     try {
-      const res = await authFetch("http://127.0.0.1:8000/github/connect");
+      const res = await authFetch(`${API_URL}/github/connect`);
       if (!res.ok) throw new Error("Could not start GitHub connection");
       const data = await res.json();
       window.location.href = data.url;
@@ -90,7 +91,7 @@ export default function CreateProject() {
     setLoading(true);
 
     try {
-      const res = await authFetch("http://127.0.0.1:8000/projects", {
+      const res = await authFetch(`${API_URL}/projects`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -115,7 +116,7 @@ export default function CreateProject() {
       const validPositions = positions.filter((p) => p.role_name.trim() !== "");
 
       for (const position of validPositions) {
-        await authFetch(`http://127.0.0.1:8000/projects/${project.id}/positions`, {
+        await authFetch(`${API_URL}/projects/${project.id}/positions`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -134,7 +135,7 @@ export default function CreateProject() {
       // shouldn't be treated as if publishing failed. Stay on this page and
       // let the user retry from the project detail page instead.
       try {
-        const repoRes = await authFetch(`http://127.0.0.1:8000/projects/${project.id}/create-repo`, {
+        const repoRes = await authFetch(`${API_URL}/projects/${project.id}/create-repo`, {
           method: "POST",
         });
         const repoData = await repoRes.json();

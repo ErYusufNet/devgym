@@ -10,6 +10,7 @@ import FloatingTechLogosFixed from "@/components/FloatingTechLogosFixed";
 import { StarRatingDisplay } from "@/components/StarRating";
 import { IconBriefcase, IconSchool, IconCode, IconFolder } from "@/components/icons/TablerIcons";
 import { authFetch } from "@/lib/authFetch";
+import { API_URL } from "@/lib/api";
 
 export default function ProfileView({ userId: userIdProp, editable = false }) {
   const [profile, setProfile] = useState(null);
@@ -33,22 +34,22 @@ export default function ProfileView({ userId: userIdProp, editable = false }) {
         return;
       }
       try {
-        const res = await fetch("http://127.0.0.1:8000/users/" + userId + "/profile");
+        const res = await fetch(API_URL + "/users/" + userId + "/profile");
         if (!res.ok) throw new Error("Could not load profile");
         const data = await res.json();
         setProfile(data);
 
-        const activityRes = await fetch("http://127.0.0.1:8000/users/" + userId + "/activity");
+        const activityRes = await fetch(API_URL + "/users/" + userId + "/activity");
         const activityData = await activityRes.json();
         setActivity(activityData);
 
-        const workRes = await fetch("http://127.0.0.1:8000/users/" + userId + "/work-experience");
+        const workRes = await fetch(API_URL + "/users/" + userId + "/work-experience");
         setWorkExperience(await workRes.json());
 
-        const educationRes = await fetch("http://127.0.0.1:8000/users/" + userId + "/education");
+        const educationRes = await fetch(API_URL + "/users/" + userId + "/education");
         setEducation(await educationRes.json());
 
-        const feedbackRes = await fetch("http://127.0.0.1:8000/users/" + userId + "/feedback");
+        const feedbackRes = await fetch(API_URL + "/users/" + userId + "/feedback");
         setFeedback(await feedbackRes.json());
       } catch (err) {
         setError(err.message);
@@ -60,12 +61,12 @@ export default function ProfileView({ userId: userIdProp, editable = false }) {
   }, [userIdProp]);
 
   async function handleDeleteWorkExperience(id) {
-    await fetch("http://127.0.0.1:8000/work-experience/" + id, { method: "DELETE" });
+    await fetch(API_URL + "/work-experience/" + id, { method: "DELETE" });
     setWorkExperience(workExperience.filter((item) => item.id !== id));
   }
 
   async function handleDeleteEducation(id) {
-    await fetch("http://127.0.0.1:8000/education/" + id, { method: "DELETE" });
+    await fetch(API_URL + "/education/" + id, { method: "DELETE" });
     setEducation(education.filter((item) => item.id !== id));
   }
 
@@ -73,7 +74,7 @@ export default function ProfileView({ userId: userIdProp, editable = false }) {
     setConnectingDiscord(true);
     setDiscordError("");
     try {
-      const res = await authFetch("http://127.0.0.1:8000/discord/connect");
+      const res = await authFetch(`${API_URL}/discord/connect`);
       if (!res.ok) throw new Error("Could not start Discord connection");
       const data = await res.json();
       window.location.href = data.url;
@@ -87,7 +88,7 @@ export default function ProfileView({ userId: userIdProp, editable = false }) {
     setConnectingGithub(true);
     setGithubError("");
     try {
-      const res = await authFetch("http://127.0.0.1:8000/github/connect");
+      const res = await authFetch(`${API_URL}/github/connect`);
       if (!res.ok) throw new Error("Could not start GitHub connection");
       const data = await res.json();
       window.location.href = data.url;

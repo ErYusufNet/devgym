@@ -8,6 +8,7 @@ import FloatingTechLogosFixed from "@/components/FloatingTechLogosFixed";
 import { IconBrandGithub } from "@/components/icons/TablerIcons";
 import { getProjectTypeMeta } from "@/lib/projectTypeMeta";
 import { POSITION_ROLES } from "@/lib/roles";
+import { API_URL } from "@/lib/api";
 
 const PROJECT_TYPES = ["web", "mobile", "saas", "desktop", "api", "game", "testing"];
 
@@ -36,7 +37,7 @@ export default function Discover() {
       if (maxHours) params.set("weekly_hours", maxHours);
       params.set("has_open_position", openOnly ? "true" : "false");
 
-      const res = await fetch(`http://127.0.0.1:8000/projects?${params}`);
+      const res = await fetch(`${API_URL}/projects?${params}`);
       if (!res.ok) throw new Error("Could not load projects");
       const data = await res.json();
       setProjects(data);

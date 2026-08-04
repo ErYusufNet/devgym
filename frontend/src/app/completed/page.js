@@ -5,6 +5,7 @@ import ScrollReveal from "@/components/ScrollReveal";
 import IconBadge from "@/components/IconBadge";
 import FloatingTechLogosFixed from "@/components/FloatingTechLogosFixed";
 import { getProjectTypeMeta } from "@/lib/projectTypeMeta";
+import { API_URL } from "@/lib/api";
 
 export default function Completed() {
   const [projects, setProjects] = useState([]);
@@ -14,7 +15,7 @@ export default function Completed() {
   useEffect(() => {
     async function fetchCompleted() {
       try {
-        const res = await fetch("http://127.0.0.1:8000/projects?has_open_position=false");
+        const res = await fetch(`${API_URL}/projects?has_open_position=false`);
         if (!res.ok) throw new Error("Could not load projects");
         const data = await res.json();
         setProjects(data.filter((p) => p.status === "completed"));

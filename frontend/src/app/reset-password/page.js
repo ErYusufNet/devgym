@@ -6,6 +6,7 @@ import ScrollReveal from "@/components/ScrollReveal";
 import IconBadge from "@/components/IconBadge";
 import { IconShieldCheck } from "@/components/icons/TablerIcons";
 import FloatingTechLogosFixed from "@/components/FloatingTechLogosFixed";
+import { API_URL } from "@/lib/api";
 
 function ResetPasswordForm() {
   const router = useRouter();
@@ -33,7 +34,7 @@ function ResetPasswordForm() {
 
     setLoading(true);
     try {
-      const res = await fetch("http://127.0.0.1:8000/reset-password", {
+      const res = await fetch(`${API_URL}/reset-password`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ token, new_password: password }),

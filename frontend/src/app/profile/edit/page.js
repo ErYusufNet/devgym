@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { authFetch } from "@/lib/authFetch";
 import { POSITION_ROLES } from "@/lib/roles";
 import FloatingTechLogosFixed from "@/components/FloatingTechLogosFixed";
+import { API_URL } from "@/lib/api";
 
 // Mirrors backend calculate_experience_level() — used only to preview the derived
 // level here; the backend is the source of truth and recomputes it on save.
@@ -42,7 +43,7 @@ export default function EditProfile() {
       }
 
       try {
-        const res = await fetch("http://127.0.0.1:8000/users/" + userId + "/profile");
+        const res = await fetch(API_URL + "/users/" + userId + "/profile");
         if (!res.ok) throw new Error("Could not load profile");
         const data = await res.json();
 
@@ -76,7 +77,7 @@ export default function EditProfile() {
     setSaving(true);
 
     try {
-      const res = await authFetch("http://127.0.0.1:8000/users/" + userId, {
+      const res = await authFetch(API_URL + "/users/" + userId, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

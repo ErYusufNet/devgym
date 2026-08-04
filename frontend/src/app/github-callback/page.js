@@ -5,6 +5,7 @@ import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import ScrollReveal from "@/components/ScrollReveal";
 import { authFetch } from "@/lib/authFetch";
+import { API_URL } from "@/lib/api";
 
 function GithubCallbackHandler() {
   const searchParams = useSearchParams();
@@ -22,7 +23,7 @@ function GithubCallbackHandler() {
       }
 
       try {
-        const res = await authFetch("http://127.0.0.1:8000/github/callback", {
+        const res = await authFetch(`${API_URL}/github/callback`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ code }),

@@ -11,6 +11,7 @@ import { authFetch } from "@/lib/authFetch";
 import CompleteProjectModal from "@/components/CompleteProjectModal";
 import RateTeammateCard from "@/components/RateTeammateCard";
 import FloatingTechLogosFixed from "@/components/FloatingTechLogosFixed";
+import { API_URL } from "@/lib/api";
 
 export default function ProjectDetail() {
   const { id } = useParams();
@@ -45,8 +46,8 @@ export default function ProjectDetail() {
   async function fetchData() {
     try {
       const [projectRes, positionsRes] = await Promise.all([
-        fetch(`http://127.0.0.1:8000/projects/${id}`),
-        fetch(`http://127.0.0.1:8000/projects/${id}/positions`),
+        fetch(`${API_URL}/projects/${id}`),
+        fetch(`${API_URL}/projects/${id}/positions`),
       ]);
 
       if (!projectRes.ok) throw new Error("Project not found");
@@ -58,13 +59,13 @@ export default function ProjectDetail() {
       setPositions(positionsData);
 
       if (projectData.status === "completed") {
-        const commentsRes = await fetch(`http://127.0.0.1:8000/projects/${id}/comments`);
+        const commentsRes = await fetch(`${API_URL}/projects/${id}/comments`);
         if (commentsRes.ok) {
           setComments(await commentsRes.json());
         }
 
         if (localStorage.getItem("devgym_token")) {
-          const pendingRes = await authFetch(`http://127.0.0.1:8000/projects/${id}/pending-feedback`);
+          const pendingRes = await authFetch(`${API_URL}/projects/${id}/pending-feedback`);
           if (pendingRes.ok) {
             setPendingTeammates(await pendingRes.json());
           }
@@ -81,7 +82,7 @@ export default function ProjectDetail() {
     setCompleting(true);
     setMessage("");
     try {
-      const res = await authFetch(`http://127.0.0.1:8000/projects/${id}/complete`, {
+      const res = await authFetch(`${API_URL}/projects/${id}/complete`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ summary: summary.trim() || null }),
@@ -108,7 +109,7 @@ export default function ProjectDetail() {
 
     setPostingComment(true);
     try {
-      const res = await authFetch(`http://127.0.0.1:8000/projects/${id}/comments`, {
+      const res = await authFetch(`${API_URL}/projects/${id}/comments`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ content: commentText.trim() }),
@@ -129,7 +130,7 @@ export default function ProjectDetail() {
 
   async function handleSubmitFeedback(payload) {
     setFeedbackMessage("");
-    const res = await authFetch(`http://127.0.0.1:8000/projects/${id}/feedback`, {
+    const res = await authFetch(`${API_URL}/projects/${id}/feedback`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload),
@@ -148,7 +149,7 @@ export default function ProjectDetail() {
     setDiscordRoomResult(null);
 
     try {
-      const res = await authFetch(`http://127.0.0.1:8000/projects/${id}/discord-room`, {
+      const res = await authFetch(`${API_URL}/projects/${id}/discord-room`, {
         method: "POST",
       });
       if (!res.ok) {
@@ -171,7 +172,7 @@ export default function ProjectDetail() {
     setGithubRepoResult(null);
 
     try {
-      const res = await authFetch(`http://127.0.0.1:8000/projects/${id}/create-repo`, {
+      const res = await authFetch(`${API_URL}/projects/${id}/create-repo`, {
         method: "POST",
       });
       const data = await res.json();
@@ -198,7 +199,7 @@ export default function ProjectDetail() {
     setApplyingTo(positionId);
 
     try {
-      const res = await authFetch("http://127.0.0.1:8000/applications", {
+      const res = await authFetch(`${API_URL}/applications`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

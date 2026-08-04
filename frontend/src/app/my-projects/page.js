@@ -8,6 +8,7 @@ import { getProjectTypeMeta } from "@/lib/projectTypeMeta";
 import { authFetch } from "@/lib/authFetch";
 import CompleteProjectModal from "@/components/CompleteProjectModal";
 import FloatingTechLogosFixed from "@/components/FloatingTechLogosFixed";
+import { API_URL } from "@/lib/api";
 
 export default function MyProjects() {
   const [projects, setProjects] = useState([]);
@@ -33,14 +34,14 @@ export default function MyProjects() {
     }
 
     try {
-      const res = await fetch("http://127.0.0.1:8000/projects?has_open_position=false");
+      const res = await fetch(`${API_URL}/projects?has_open_position=false`);
       const allProjects = await res.json();
       const myProjects = allProjects.filter((p) => p.owner_id === userId);
       setProjects(myProjects);
 
       const appsMap = {};
       for (const project of myProjects) {
-        const appsRes = await fetch(`http://127.0.0.1:8000/projects/${project.id}/applications`);
+        const appsRes = await fetch(`${API_URL}/projects/${project.id}/applications`);
         appsMap[project.id] = await appsRes.json();
       }
       setApplicationsByProject(appsMap);
@@ -54,7 +55,7 @@ export default function MyProjects() {
   async function handleAccept(applicationId, applicantName) {
     setActionMessage("");
     try {
-      const res = await authFetch(`http://127.0.0.1:8000/applications/${applicationId}/accept`, {
+      const res = await authFetch(`${API_URL}/applications/${applicationId}/accept`, {
         method: "POST",
       });
       const data = await res.json();
@@ -79,7 +80,7 @@ export default function MyProjects() {
   async function handleReject(applicationId) {
     setActionMessage("");
     try {
-      const res = await authFetch(`http://127.0.0.1:8000/applications/${applicationId}/reject`, {
+      const res = await authFetch(`${API_URL}/applications/${applicationId}/reject`, {
         method: "POST",
       });
       if (!res.ok) {
@@ -99,7 +100,7 @@ export default function MyProjects() {
     setActionMessage("");
 
     try {
-      const res = await authFetch(`http://127.0.0.1:8000/projects/${completeTarget.id}/complete`, {
+      const res = await authFetch(`${API_URL}/projects/${completeTarget.id}/complete`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ summary: summary.trim() || null }),
@@ -123,7 +124,7 @@ export default function MyProjects() {
     setDeleting(true);
 
     try {
-      const res = await authFetch(`http://127.0.0.1:8000/projects/${deleteTarget.id}`, {
+      const res = await authFetch(`${API_URL}/projects/${deleteTarget.id}`, {
         method: "DELETE",
       });
       if (!res.ok) {

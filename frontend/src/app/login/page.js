@@ -5,6 +5,7 @@ import ScrollReveal from "@/components/ScrollReveal";
 import IconBadge from "@/components/IconBadge";
 import { IconLogin } from "@/components/icons/TablerIcons";
 import FloatingTechLogosFixed from "@/components/FloatingTechLogosFixed";
+import { API_URL } from "@/lib/api";
 
 export default function Login() {
   const [email, setEmail] = useState("");
@@ -19,7 +20,7 @@ export default function Login() {
 
     try {
       const params = new URLSearchParams({ email, password });
-      const res = await fetch(`http://127.0.0.1:8000/login?${params}`, {
+      const res = await fetch(`${API_URL}/login?${params}`, {
         method: "POST",
       });
 

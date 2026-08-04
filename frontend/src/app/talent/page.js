@@ -5,6 +5,7 @@ import ScrollReveal from "@/components/ScrollReveal";
 import { StarRatingDisplay } from "@/components/StarRating";
 import FloatingTechLogosFixed from "@/components/FloatingTechLogosFixed";
 import { POSITION_ROLES } from "@/lib/roles";
+import { API_URL } from "@/lib/api";
 
 const EXPERIENCE_LEVELS = ["student", "junior", "mid", "senior"];
 
@@ -31,7 +32,7 @@ export default function Talent() {
       if (title) params.set("title", title);
       if (experienceLevel) params.set("experience_level", experienceLevel);
 
-      const res = await fetch(`http://127.0.0.1:8000/users/search?${params}`);
+      const res = await fetch(`${API_URL}/users/search?${params}`);
       if (!res.ok) throw new Error("Could not load candidates");
       const data = await res.json();
       setCandidates(data);
