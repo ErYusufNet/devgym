@@ -68,6 +68,9 @@ class User(Base):
     github_username = Column(String)
     availability = Column(String)
     plan = Column(Enum(PlanType), default=PlanType.free)
+    years_of_experience = Column(Integer, nullable=True)
+    languages = Column(JSON, default=list)
+    preferred_title = Column(String, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
 
     projects = relationship("Project", back_populates="owner")

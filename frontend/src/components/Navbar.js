@@ -29,6 +29,9 @@ export default function Navbar() {
           <a href="/completed" className="text-secondary hover:text-navy">
             Showcase
           </a>
+          <a href="/talent" className="text-secondary hover:text-navy">
+            Find Talent
+          </a>
 
           {isLoggedIn ? (
             <>

@@ -16,6 +16,9 @@ class UserCreate(BaseModel):
     experience_level: Optional[ExperienceLevel] = None
     github_username: Optional[str] = None
     availability: Optional[str] = None
+    years_of_experience: Optional[int] = None
+    languages: Optional[List[str]] = []
+    preferred_title: Optional[str] = None
 
 
 class UserUpdate(BaseModel):
@@ -25,6 +28,9 @@ class UserUpdate(BaseModel):
     experience_level: Optional[ExperienceLevel] = None
     github_username: Optional[str] = None
     availability: Optional[str] = None
+    years_of_experience: Optional[int] = None
+    languages: Optional[List[str]] = None
+    preferred_title: Optional[str] = None
 
 
 class UserOut(BaseModel):
@@ -37,6 +43,9 @@ class UserOut(BaseModel):
     github_username: Optional[str]
     availability: Optional[str]
     plan: PlanType
+    years_of_experience: Optional[int] = None
+    languages: List[str] = []
+    preferred_title: Optional[str] = None
     created_at: datetime
 
     class Config:

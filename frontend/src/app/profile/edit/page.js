@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { authFetch } from "@/lib/authFetch";
+import { POSITION_ROLES } from "@/lib/roles";
 
 const EXPERIENCE_LEVELS = ["student", "junior", "mid", "senior"];
 
@@ -15,6 +16,9 @@ export default function EditProfile() {
   const [experienceLevel, setExperienceLevel] = useState("");
   const [githubUsername, setGithubUsername] = useState("");
   const [availability, setAvailability] = useState("");
+  const [yearsOfExperience, setYearsOfExperience] = useState("");
+  const [languages, setLanguages] = useState("");
+  const [preferredTitle, setPreferredTitle] = useState("");
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -40,6 +44,9 @@ export default function EditProfile() {
         setExperienceLevel(data.experience_level || "");
         setGithubUsername(data.github_username || "");
         setAvailability(data.availability || "");
+        setYearsOfExperience(data.years_of_experience ?? "");
+        setLanguages((data.languages || []).join(", "));
+        setPreferredTitle(data.preferred_title || "");
       } catch (err) {
         setError(err.message);
       } finally {
@@ -72,6 +79,9 @@ export default function EditProfile() {
           experience_level: experienceLevel || null,
           github_username: githubUsername,
           availability,
+          years_of_experience: yearsOfExperience ? parseInt(yearsOfExperience) : null,
+          languages: languages.split(",").map((l) => l.trim()).filter(Boolean),
+          preferred_title: preferredTitle || null,
         }),
       });
 
@@ -134,6 +144,34 @@ export default function EditProfile() {
             <option value="">Experience level</option>
             {EXPERIENCE_LEVELS.map((level) => (
               <option key={level} value={level}>{level}</option>
+            ))}
+          </select>
+
+          <input
+            type="number"
+            min="0"
+            placeholder="Years of experience"
+            value={yearsOfExperience}
+            onChange={(e) => setYearsOfExperience(e.target.value)}
+            className="px-4 py-2 border border-slate-300 rounded-lg bg-white text-navy placeholder:text-secondary focus:outline-none focus:border-accent"
+          />
+
+          <input
+            type="text"
+            placeholder="Languages (comma separated, e.g. English, Finnish, Turkish)"
+            value={languages}
+            onChange={(e) => setLanguages(e.target.value)}
+            className="px-4 py-2 border border-slate-300 rounded-lg bg-white text-navy placeholder:text-secondary focus:outline-none focus:border-accent"
+          />
+
+          <select
+            value={preferredTitle}
+            onChange={(e) => setPreferredTitle(e.target.value)}
+            className="px-4 py-2 border border-slate-300 rounded-lg bg-white text-navy focus:outline-none focus:border-accent"
+          >
+            <option value="">Preferred title</option>
+            {POSITION_ROLES.map((role) => (
+              <option key={role} value={role}>{role}</option>
             ))}
           </select>
 

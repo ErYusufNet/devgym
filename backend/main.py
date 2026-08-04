@@ -63,6 +63,9 @@ def create_user(user: schemas.UserCreate, db: Session = Depends(get_db)):
         experience_level=user.experience_level,
         github_username=user.github_username,
         availability=user.availability,
+        years_of_experience=user.years_of_experience,
+        languages=user.languages,
+        preferred_title=user.preferred_title,
     )
     db.add(new_user)
     db.commit()
@@ -73,6 +76,81 @@ def create_user(user: schemas.UserCreate, db: Session = Depends(get_db)):
 @app.get("/users", response_model=list[schemas.UserOut])
 def list_users(db: Session = Depends(get_db)):
     return db.query(models.User).all()
+
+
+@app.get("/users/search")
+def search_users(
+    skills: Optional[str] = None,
+    min_years_experience: Optional[int] = None,
+    languages: Optional[str] = None,
+    title: Optional[str] = None,
+    experience_level: Optional[models.ExperienceLevel] = None,
+    db: Session = Depends(get_db),
+):
+    query = db.query(models.User)
+
+    if min_years_experience is not None:
+        query = query.filter(models.User.years_of_experience >= min_years_experience)
+    if title:
+        query = query.filter(models.User.preferred_title.ilike(title))
+    if experience_level:
+        query = query.filter(models.User.experience_level == experience_level)
+
+    users = query.all()
+
+    if skills:
+        wanted_skills = [s.strip().lower() for s in skills.split(",") if s.strip()]
+        users = [
+            u for u in users
+            if any(w in s.lower() for s in (u.skills or []) for w in wanted_skills)
+        ]
+
+    if languages:
+        wanted_languages = [l.strip().lower() for l in languages.split(",") if l.strip()]
+        users = [
+            u for u in users
+            if any(w in lang.lower() for lang in (u.languages or []) for w in wanted_languages)
+        ]
+
+    def summarize(bio):
+        if not bio:
+            return None
+        return bio if len(bio) <= 160 else bio[:157].rstrip() + "..."
+
+    result = []
+    for u in users:
+        feedback = db.query(models.Feedback).filter(models.Feedback.to_user_id == u.id).all()
+        feedback_count = len(feedback)
+        if feedback_count:
+            avg_communication = round(sum(f.communication for f in feedback) / feedback_count, 1)
+            avg_reliability = round(sum(f.reliability for f in feedback) / feedback_count, 1)
+            avg_code_quality = round(sum(f.code_quality for f in feedback) / feedback_count, 1)
+            avg_overall = round((avg_communication + avg_reliability + avg_code_quality) / 3, 1)
+        else:
+            avg_communication = avg_reliability = avg_code_quality = avg_overall = None
+
+        result.append({
+            "id": u.id,
+            "full_name": u.full_name,
+            "bio": summarize(u.bio),
+            "skills": u.skills,
+            "years_of_experience": u.years_of_experience,
+            "languages": u.languages,
+            "preferred_title": u.preferred_title,
+            "experience_level": u.experience_level,
+            "reputation": {
+                "feedback_count": feedback_count,
+                "avg_communication": avg_communication,
+                "avg_reliability": avg_reliability,
+                "avg_code_quality": avg_code_quality,
+                "avg_overall": avg_overall,
+            },
+        })
+
+    # Highest-rated first; anyone with no feedback yet sorts to the end.
+    result.sort(key=lambda r: (r["reputation"]["avg_overall"] is None, -(r["reputation"]["avg_overall"] or 0)))
+
+    return result
 
 
 @app.get("/users/{user_id}/profile")
