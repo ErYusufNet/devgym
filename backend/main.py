@@ -632,6 +632,21 @@ def create_application(
     db.add(new_application)
     db.commit()
     db.refresh(new_application)
+
+    project = db.query(models.Project).filter(models.Project.id == position.project_id).first()
+    owner = db.query(models.User).filter(models.User.id == project.owner_id).first() if project else None
+    if owner:
+        try:
+            email_utils.send_new_application_email(
+                owner.email,
+                owner_name=owner.full_name or owner.email,
+                applicant_name=current_user.full_name or current_user.email,
+                project_title=project.title,
+                role_name=position.role_name,
+            )
+        except Exception as exc:
+            print(f"[create_application] Failed to send new-application email to {owner.email}: {exc}")
+
     return new_application
 
 
@@ -674,6 +689,20 @@ def accept_application(
 
     db.commit()
     db.refresh(application)
+
+    applicant = db.query(models.User).filter(models.User.id == application.user_id).first()
+    if applicant:
+        try:
+            email_utils.send_application_accepted_email(
+                applicant.email,
+                applicant_name=applicant.full_name or applicant.email,
+                project_title=project.title,
+                role_name=position.role_name,
+                project_id=project.id,
+            )
+        except Exception as exc:
+            print(f"[accept_application] Failed to send acceptance email to {applicant.email}: {exc}")
+
     return application
 
 
