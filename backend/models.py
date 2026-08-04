@@ -2,7 +2,7 @@ import uuid
 from datetime import datetime
 
 from sqlalchemy import (
-    Column, String, Text, DateTime, ForeignKey, Enum, Integer
+    Column, String, Text, DateTime, ForeignKey, Enum, Integer, UniqueConstraint
 )
 from sqlalchemy.dialects.sqlite import JSON
 from sqlalchemy.orm import relationship
@@ -164,4 +164,21 @@ class ProjectComment(Base):
     project_id = Column(String, ForeignKey("projects.id"), nullable=False)
     user_id = Column(String, ForeignKey("users.id"), nullable=False)
     content = Column(Text, nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+
+class Feedback(Base):
+    __tablename__ = "feedback"
+    __table_args__ = (
+        UniqueConstraint("project_id", "from_user_id", "to_user_id", name="uq_feedback_project_from_to"),
+    )
+
+    id = Column(String, primary_key=True, default=generate_uuid)
+    project_id = Column(String, ForeignKey("projects.id"), nullable=False)
+    from_user_id = Column(String, ForeignKey("users.id"), nullable=False)
+    to_user_id = Column(String, ForeignKey("users.id"), nullable=False)
+    communication = Column(Integer, nullable=False)
+    reliability = Column(Integer, nullable=False)
+    code_quality = Column(Integer, nullable=False)
+    comment = Column(Text, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)

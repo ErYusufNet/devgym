@@ -5,6 +5,8 @@ import ActivityHeatmap from "@/components/ActivityHeatmap";
 import ScrollReveal from "@/components/ScrollReveal";
 import IconBadge from "@/components/IconBadge";
 import CompletionRateRing from "@/components/CompletionRateRing";
+import ReputationSummary from "@/components/ReputationSummary";
+import { StarRatingDisplay } from "@/components/StarRating";
 import { IconBriefcase, IconSchool, IconCode, IconFolder } from "@/components/icons/TablerIcons";
 
 export default function ProfileView({ userId: userIdProp, editable = false }) {
@@ -12,6 +14,7 @@ export default function ProfileView({ userId: userIdProp, editable = false }) {
   const [activity, setActivity] = useState({});
   const [workExperience, setWorkExperience] = useState([]);
   const [education, setEducation] = useState([]);
+  const [feedback, setFeedback] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
@@ -38,6 +41,9 @@ export default function ProfileView({ userId: userIdProp, editable = false }) {
 
         const educationRes = await fetch("http://127.0.0.1:8000/users/" + userId + "/education");
         setEducation(await educationRes.json());
+
+        const feedbackRes = await fetch("http://127.0.0.1:8000/users/" + userId + "/feedback");
+        setFeedback(await feedbackRes.json());
       } catch (err) {
         setError(err.message);
       } finally {
@@ -112,6 +118,8 @@ export default function ProfileView({ userId: userIdProp, editable = false }) {
             </span>
           )}
         </div>
+
+        <ReputationSummary reputation={profile.reputation} feedback={feedback} />
 
         {profile.skills && profile.skills.length > 0 && (
           <ScrollReveal className="mb-10">
@@ -249,7 +257,15 @@ export default function ProfileView({ userId: userIdProp, editable = false }) {
             {profile.joined_projects.map((p) => (
               <a key={p.id} href={"/projects/" + p.id} className="border border-slate-200 rounded-xl px-4 py-3 text-sm text-navy shadow-sm hover:shadow-md transition-shadow flex items-center justify-between">
                 <span>{p.title}</span>
-                <span className="text-xs text-secondary capitalize">{p.status}</span>
+                <div className="flex items-center gap-3 shrink-0">
+                  {p.avg_rating != null && (
+                    <span className="flex items-center gap-1">
+                      <StarRatingDisplay rating={p.avg_rating} size="w-3.5 h-3.5" />
+                      <span className="text-xs text-secondary">{p.avg_rating}</span>
+                    </span>
+                  )}
+                  <span className="text-xs text-secondary capitalize">{p.status}</span>
+                </div>
               </a>
             ))}
             {profile.joined_projects.length === 0 && (

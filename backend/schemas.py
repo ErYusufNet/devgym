@@ -1,6 +1,6 @@
 from datetime import datetime
 from typing import Optional, List
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel, EmailStr, Field
 
 from models import ExperienceLevel, PlanType, ProjectStatus, ProjectType, PositionStatus, ApplicationStatus
 
@@ -203,6 +203,31 @@ class ProjectCommentOut(BaseModel):
     content: str
     created_at: datetime
     author_name: Optional[str] = None
+
+    class Config:
+        from_attributes = True
+
+
+# ---------- Feedback ----------
+
+class FeedbackCreate(BaseModel):
+    to_user_id: str
+    communication: int = Field(ge=1, le=5)
+    reliability: int = Field(ge=1, le=5)
+    code_quality: int = Field(ge=1, le=5)
+    comment: Optional[str] = None
+
+
+class FeedbackOut(BaseModel):
+    id: str
+    project_id: str
+    from_user_id: str
+    to_user_id: str
+    communication: int
+    reliability: int
+    code_quality: int
+    comment: Optional[str]
+    created_at: datetime
 
     class Config:
         from_attributes = True

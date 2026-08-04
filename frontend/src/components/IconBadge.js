@@ -3,6 +3,7 @@ const COLORS = {
   purple: "bg-violet-600/10 text-violet-600",
   pink: "bg-pink-600/10 text-pink-600",
   teal: "bg-teal-600/10 text-teal-600",
+  gold: "bg-gold/10 text-gold",
 };
 
 const SIZES = {

@@ -5,10 +5,11 @@ import { useParams } from "next/navigation";
 import ScrollReveal from "@/components/ScrollReveal";
 import IconBadge from "@/components/IconBadge";
 import HealthBadge from "@/components/HealthBadge";
-import { IconUsers, IconHeartHandshake } from "@/components/icons/TablerIcons";
+import { IconUsers, IconHeartHandshake, IconStarFilled } from "@/components/icons/TablerIcons";
 import { getProjectTypeMeta } from "@/lib/projectTypeMeta";
 import { authFetch } from "@/lib/authFetch";
 import CompleteProjectModal from "@/components/CompleteProjectModal";
+import RateTeammateCard from "@/components/RateTeammateCard";
 
 export default function ProjectDetail() {
   const { id } = useParams();
@@ -24,6 +25,8 @@ export default function ProjectDetail() {
   const [commentText, setCommentText] = useState("");
   const [postingComment, setPostingComment] = useState(false);
   const [commentError, setCommentError] = useState("");
+  const [pendingTeammates, setPendingTeammates] = useState([]);
+  const [feedbackMessage, setFeedbackMessage] = useState("");
 
   const currentUserId = typeof window !== "undefined" ? localStorage.getItem("devgym_user_id") : null;
   const isLoggedIn = typeof window !== "undefined" ? !!localStorage.getItem("devgym_token") : false;
@@ -51,6 +54,13 @@ export default function ProjectDetail() {
         const commentsRes = await fetch(`http://127.0.0.1:8000/projects/${id}/comments`);
         if (commentsRes.ok) {
           setComments(await commentsRes.json());
+        }
+
+        if (localStorage.getItem("devgym_token")) {
+          const pendingRes = await authFetch(`http://127.0.0.1:8000/projects/${id}/pending-feedback`);
+          if (pendingRes.ok) {
+            setPendingTeammates(await pendingRes.json());
+          }
         }
       }
     } catch (err) {
@@ -108,6 +118,21 @@ export default function ProjectDetail() {
     } finally {
       setPostingComment(false);
     }
+  }
+
+  async function handleSubmitFeedback(payload) {
+    setFeedbackMessage("");
+    const res = await authFetch(`http://127.0.0.1:8000/projects/${id}/feedback`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+    if (!res.ok) {
+      const data = await res.json();
+      throw new Error(data.detail || "Could not submit feedback");
+    }
+    setPendingTeammates(pendingTeammates.filter((t) => t.id !== payload.to_user_id));
+    setFeedbackMessage("Feedback submitted — thanks!");
   }
 
   async function handleApply(positionId) {
@@ -256,6 +281,25 @@ export default function ProjectDetail() {
             )}
           </div>
         </ScrollReveal>
+
+        {project.status === "completed" && pendingTeammates.length > 0 && (
+          <ScrollReveal className="mt-8">
+            <div className="flex items-center gap-3 mb-4">
+              <IconBadge icon={IconStarFilled} color="gold" size="sm" />
+              <h2 className="text-xl font-semibold text-navy">Rate your teammates</h2>
+            </div>
+
+            {feedbackMessage && (
+              <p className="text-sm mb-4 text-navy">{feedbackMessage}</p>
+            )}
+
+            <div className="flex flex-col gap-3">
+              {pendingTeammates.map((teammate) => (
+                <RateTeammateCard key={teammate.id} teammate={teammate} onSubmit={handleSubmitFeedback} />
+              ))}
+            </div>
+          </ScrollReveal>
+        )}
 
         {project.status === "completed" && (
           <ScrollReveal className="mt-8">

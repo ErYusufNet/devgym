@@ -91,6 +91,32 @@ def get_user_profile(user_id: str, db: Session = Depends(get_db)):
     joined_completed_count = sum(1 for p in joined_projects if p.status == models.ProjectStatus.completed)
     completion_rate = round(joined_completed_count / joined_total_count * 100) if joined_total_count else None
 
+    received_feedback = db.query(models.Feedback).filter(models.Feedback.to_user_id == user_id).all()
+    feedback_count = len(received_feedback)
+
+    def avg(values):
+        return round(sum(values) / len(values), 1) if values else None
+
+    reputation = {
+        "feedback_count": feedback_count,
+        "avg_communication": avg([f.communication for f in received_feedback]),
+        "avg_reliability": avg([f.reliability for f in received_feedback]),
+        "avg_code_quality": avg([f.code_quality for f in received_feedback]),
+        "avg_overall": avg([(f.communication + f.reliability + f.code_quality) / 3 for f in received_feedback]),
+    }
+
+    # Per-project average, so each joined-project card can show how this user was
+    # rated specifically on that project (None when nobody has rated them there yet).
+    feedback_by_project = {}
+    for f in received_feedback:
+        feedback_by_project.setdefault(f.project_id, []).append(f)
+
+    def project_avg_rating(project_id):
+        items = feedback_by_project.get(project_id)
+        if not items:
+            return None
+        return avg([(f.communication + f.reliability + f.code_quality) / 3 for f in items])
+
     return {
         "id": user.id,
         "email": user.email,
@@ -105,11 +131,13 @@ def get_user_profile(user_id: str, db: Session = Depends(get_db)):
             {"id": p.id, "title": p.title, "status": p.status} for p in owned_projects
         ],
         "joined_projects": [
-            {"id": p.id, "title": p.title, "status": p.status} for p in joined_projects
+            {"id": p.id, "title": p.title, "status": p.status, "avg_rating": project_avg_rating(p.id)}
+            for p in joined_projects
         ],
         "joined_total_count": joined_total_count,
         "joined_completed_count": joined_completed_count,
         "completion_rate": completion_rate,
+        "reputation": reputation,
     }
 
 
@@ -399,6 +427,7 @@ def delete_project(
     db.query(models.TeamMember).filter(models.TeamMember.project_id == project_id).delete(synchronize_session=False)
     db.query(models.Position).filter(models.Position.project_id == project_id).delete(synchronize_session=False)
     db.query(models.ProjectComment).filter(models.ProjectComment.project_id == project_id).delete(synchronize_session=False)
+    db.query(models.Feedback).filter(models.Feedback.project_id == project_id).delete(synchronize_session=False)
     db.delete(project)
     db.commit()
     return {"ok": True}
@@ -669,6 +698,149 @@ def list_project_comments(project_id: str, db: Session = Depends(get_db)):
             "author_name": (author.full_name or author.email) if author else None,
         })
     return result
+
+
+# ---------- Feedback ----------
+
+@app.post("/projects/{project_id}/feedback", response_model=schemas.FeedbackOut)
+def create_feedback(
+    project_id: str,
+    feedback: schemas.FeedbackCreate,
+    current_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    project = db.query(models.Project).filter(models.Project.id == project_id).first()
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+    if project.status != models.ProjectStatus.completed:
+        raise HTTPException(status_code=400, detail="You can only leave feedback on completed projects")
+
+    if feedback.to_user_id == current_user.id:
+        raise HTTPException(status_code=400, detail="You can't leave feedback for yourself")
+
+    from_membership = db.query(models.TeamMember).filter(
+        models.TeamMember.project_id == project_id,
+        models.TeamMember.user_id == current_user.id,
+    ).first()
+    if not from_membership:
+        raise HTTPException(status_code=403, detail="You must have been a member of this project to leave feedback")
+
+    to_membership = db.query(models.TeamMember).filter(
+        models.TeamMember.project_id == project_id,
+        models.TeamMember.user_id == feedback.to_user_id,
+    ).first()
+    if not to_membership:
+        raise HTTPException(status_code=404, detail="This user was not a member of this project")
+
+    existing = db.query(models.Feedback).filter(
+        models.Feedback.project_id == project_id,
+        models.Feedback.from_user_id == current_user.id,
+        models.Feedback.to_user_id == feedback.to_user_id,
+    ).first()
+    if existing:
+        raise HTTPException(status_code=400, detail="You have already left feedback for this teammate on this project")
+
+    new_feedback = models.Feedback(
+        project_id=project_id,
+        from_user_id=current_user.id,
+        to_user_id=feedback.to_user_id,
+        communication=feedback.communication,
+        reliability=feedback.reliability,
+        code_quality=feedback.code_quality,
+        comment=feedback.comment,
+    )
+    db.add(new_feedback)
+    db.commit()
+    db.refresh(new_feedback)
+    return new_feedback
+
+
+@app.get("/users/{user_id}/feedback")
+def get_user_feedback(user_id: str, db: Session = Depends(get_db)):
+    user = db.query(models.User).filter(models.User.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    feedback_list = (
+        db.query(models.Feedback)
+        .filter(models.Feedback.to_user_id == user_id)
+        .order_by(models.Feedback.created_at.desc())
+        .all()
+    )
+
+    result = []
+    for f in feedback_list:
+        project = db.query(models.Project).filter(models.Project.id == f.project_id).first()
+        from_user = db.query(models.User).filter(models.User.id == f.from_user_id).first()
+        result.append({
+            "id": f.id,
+            "project_id": f.project_id,
+            "project_title": project.title if project else None,
+            "from_user_id": f.from_user_id,
+            "from_user_name": (from_user.full_name or from_user.email) if from_user else None,
+            "communication": f.communication,
+            "reliability": f.reliability,
+            "code_quality": f.code_quality,
+            "comment": f.comment,
+            "created_at": f.created_at,
+        })
+
+    count = len(feedback_list)
+
+    def avg(values):
+        return round(sum(values) / len(values), 1) if values else None
+
+    return {
+        "feedback": result,
+        "count": count,
+        "averages": {
+            "communication": avg([f.communication for f in feedback_list]),
+            "reliability": avg([f.reliability for f in feedback_list]),
+            "code_quality": avg([f.code_quality for f in feedback_list]),
+        },
+    }
+
+
+@app.get("/projects/{project_id}/pending-feedback")
+def get_pending_feedback(
+    project_id: str,
+    current_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    project = db.query(models.Project).filter(models.Project.id == project_id).first()
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+    if project.status != models.ProjectStatus.completed:
+        return []
+
+    is_member = db.query(models.TeamMember).filter(
+        models.TeamMember.project_id == project_id,
+        models.TeamMember.user_id == current_user.id,
+    ).first()
+    if not is_member:
+        return []
+
+    teammates = db.query(models.TeamMember).filter(
+        models.TeamMember.project_id == project_id,
+        models.TeamMember.user_id != current_user.id,
+    ).all()
+    teammate_user_ids = {m.user_id for m in teammates}
+
+    already_rated = {
+        f.to_user_id
+        for f in db.query(models.Feedback).filter(
+            models.Feedback.project_id == project_id,
+            models.Feedback.from_user_id == current_user.id,
+        ).all()
+    }
+
+    pending_ids = teammate_user_ids - already_rated
+    pending_users = db.query(models.User).filter(models.User.id.in_(pending_ids)).all()
+
+    return [
+        {"id": u.id, "full_name": u.full_name, "email": u.email}
+        for u in pending_users
+    ]
 
 
 # ---------- Auth ----------
