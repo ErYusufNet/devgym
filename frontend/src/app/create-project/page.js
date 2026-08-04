@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import ScrollReveal from "@/components/ScrollReveal";
 import IconBadge from "@/components/IconBadge";
@@ -25,6 +25,40 @@ export default function CreateProject() {
   const [positions, setPositions] = useState([{ role_name: "", description: "" }]);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [githubConnected, setGithubConnected] = useState(false);
+  const [connectingGithub, setConnectingGithub] = useState(false);
+  const [autoCreateRepo, setAutoCreateRepo] = useState(true);
+  const [createdProject, setCreatedProject] = useState(null);
+  const [repoError, setRepoError] = useState("");
+
+  useEffect(() => {
+    async function loadGithubStatus() {
+      const userId = localStorage.getItem("devgym_user_id");
+      if (!userId) return;
+      try {
+        const res = await fetch("http://127.0.0.1:8000/users/" + userId + "/profile");
+        if (!res.ok) return;
+        const data = await res.json();
+        setGithubConnected(!!data.github_connected);
+      } catch {
+        // Not critical — the manual URL input still works if this fails.
+      }
+    }
+    loadGithubStatus();
+  }, []);
+
+  async function handleConnectGithub() {
+    setConnectingGithub(true);
+    try {
+      const res = await authFetch("http://127.0.0.1:8000/github/connect");
+      if (!res.ok) throw new Error("Could not start GitHub connection");
+      const data = await res.json();
+      window.location.href = data.url;
+    } catch (err) {
+      setConnectingGithub(false);
+      setError(err.message);
+    }
+  }
 
   function updatePosition(index, field, value) {
     const updated = [...positions];
@@ -40,9 +74,13 @@ export default function CreateProject() {
     setPositions(positions.filter((_, i) => i !== index));
   }
 
+  const willAutoCreateRepo = githubConnected && autoCreateRepo;
+
   async function handleSubmit(e) {
     e.preventDefault();
     setError("");
+    setRepoError("");
+    setCreatedProject(null);
 
     if (!localStorage.getItem("devgym_token")) {
       setError("Please log in to create a project.");
@@ -59,7 +97,7 @@ export default function CreateProject() {
           title,
           description,
           tech_stack: techStack.split(",").map((t) => t.trim()).filter(Boolean),
-          github_repo_url: githubUrl,
+          github_repo_url: willAutoCreateRepo ? "" : githubUrl,
           project_type: projectType,
           duration_weeks: durationWeeks ? parseInt(durationWeeks) : null,
           weekly_hours: weeklyHours ? parseInt(weeklyHours) : null,
@@ -87,7 +125,28 @@ export default function CreateProject() {
         });
       }
 
-      router.push(`/projects/${project.id}`);
+      if (!willAutoCreateRepo) {
+        router.push(`/projects/${project.id}`);
+        return;
+      }
+
+      // Project already exists at this point — a repo-creation failure here
+      // shouldn't be treated as if publishing failed. Stay on this page and
+      // let the user retry from the project detail page instead.
+      try {
+        const repoRes = await authFetch(`http://127.0.0.1:8000/projects/${project.id}/create-repo`, {
+          method: "POST",
+        });
+        const repoData = await repoRes.json();
+        if (!repoRes.ok) {
+          throw new Error(repoData.detail || "Could not create GitHub repo");
+        }
+        router.push(`/projects/${project.id}`);
+        return;
+      } catch (repoErr) {
+        setCreatedProject(project);
+        setRepoError(repoErr.message);
+      }
     } catch (err) {
       setError(err.message);
     } finally {
@@ -135,13 +194,49 @@ export default function CreateProject() {
             className="px-4 py-2 border border-slate-300 rounded-lg bg-white text-navy placeholder:text-secondary focus:outline-none focus:border-accent"
           />
 
-          <input
-            type="url"
-            placeholder="GitHub repository URL"
-            value={githubUrl}
-            onChange={(e) => setGithubUrl(e.target.value)}
-            className="px-4 py-2 border border-slate-300 rounded-lg bg-white text-navy placeholder:text-secondary focus:outline-none focus:border-accent"
-          />
+          {githubConnected ? (
+            <div className="flex flex-col gap-2">
+              <label className="flex items-center gap-2 text-sm text-navy">
+                <input
+                  type="checkbox"
+                  checked={autoCreateRepo}
+                  onChange={(e) => setAutoCreateRepo(e.target.checked)}
+                  className="rounded border-slate-300"
+                />
+                Auto-create a GitHub repo for this project
+              </label>
+              {!autoCreateRepo && (
+                <input
+                  type="url"
+                  placeholder="GitHub repository URL"
+                  value={githubUrl}
+                  onChange={(e) => setGithubUrl(e.target.value)}
+                  className="px-4 py-2 border border-slate-300 rounded-lg bg-white text-navy placeholder:text-secondary focus:outline-none focus:border-accent"
+                />
+              )}
+            </div>
+          ) : (
+            <div className="flex flex-col gap-3">
+              <div className="px-4 py-3 rounded-lg bg-surface text-sm text-secondary flex items-center justify-between gap-3 flex-wrap">
+                <span>Connect your GitHub account to auto-create a repo</span>
+                <button
+                  type="button"
+                  onClick={handleConnectGithub}
+                  disabled={connectingGithub}
+                  className="px-3 py-1 rounded-md border border-slate-300 text-navy hover:bg-white disabled:opacity-50 shrink-0"
+                >
+                  {connectingGithub ? "Connecting..." : "Connect GitHub"}
+                </button>
+              </div>
+              <input
+                type="url"
+                placeholder="GitHub repository URL"
+                value={githubUrl}
+                onChange={(e) => setGithubUrl(e.target.value)}
+                className="px-4 py-2 border border-slate-300 rounded-lg bg-white text-navy placeholder:text-secondary focus:outline-none focus:border-accent"
+              />
+            </div>
+          )}
 
           <select
             value={projectType}
@@ -227,6 +322,18 @@ export default function CreateProject() {
           </div>
 
           {error && <p className="text-sm text-red-500">{error}</p>}
+
+          {createdProject && repoError && (
+            <div className="px-4 py-3 rounded-lg bg-red-50 text-sm text-red-600">
+              <p>Project published, but the GitHub repo couldn&apos;t be created: {repoError}</p>
+              <a
+                href={`/projects/${createdProject.id}`}
+                className="font-medium text-accent hover:text-accent-hover"
+              >
+                View project (you can try again from there) →
+              </a>
+            </div>
+          )}
 
           <button
             type="submit"
