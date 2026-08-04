@@ -90,6 +90,7 @@ class ProjectOut(BaseModel):
     timezone: Optional[str]
     created_at: datetime
     health: Optional[str] = None
+    last_commit_at: Optional[datetime] = None
     completion_summary: Optional[str] = None
     discord_channel_id: Optional[str] = None
     discord_invite_url: Optional[str] = None

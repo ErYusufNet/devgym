@@ -258,6 +258,11 @@ export default function ProjectDetail() {
             <h1 className="text-3xl font-semibold text-navy">{project.title}</h1>
             <HealthBadge health={project.health} />
           </div>
+          {project.last_commit_at && (
+            <p className="text-xs text-secondary mb-2">
+              Last commit: {Math.floor((new Date() - new Date(project.last_commit_at)) / (1000 * 60 * 60 * 24))} days ago
+            </p>
+          )}
           <p className="text-secondary mb-4">{project.description}</p>
 
           {currentUserId === project.owner_id && project.status !== "completed" && (

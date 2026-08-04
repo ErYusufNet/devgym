@@ -5,6 +5,7 @@ import ScrollReveal from "@/components/ScrollReveal";
 import IconBadge from "@/components/IconBadge";
 import HealthBadge from "@/components/HealthBadge";
 import FloatingTechLogosFixed from "@/components/FloatingTechLogosFixed";
+import { IconBrandGithub } from "@/components/icons/TablerIcons";
 import { getProjectTypeMeta } from "@/lib/projectTypeMeta";
 import { POSITION_ROLES } from "@/lib/roles";
 
@@ -159,9 +160,15 @@ export default function Discover() {
                     )}
                   </div>
 
-                  <div className="flex items-center gap-2 mb-2">
+                  <div className="flex items-center gap-2 mb-2 flex-wrap">
                     <h2 className="text-lg font-semibold text-navy">{project.title}</h2>
                     <HealthBadge health={project.health} />
+                    {project.last_commit_at && (
+                      <span className="inline-flex items-center gap-1 text-xs text-secondary">
+                        <IconBrandGithub className="w-3.5 h-3.5" />
+                        Last commit: {Math.floor((new Date() - new Date(project.last_commit_at)) / (1000 * 60 * 60 * 24))} days ago
+                      </span>
+                    )}
                   </div>
                   <p className="text-sm text-secondary mb-4">{project.description}</p>
 

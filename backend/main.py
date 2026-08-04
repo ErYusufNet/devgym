@@ -350,11 +350,12 @@ def delete_education(education_id: str, db: Session = Depends(get_db)):
 
 # ---------- Projects ----------
 
-def calculate_project_health(project: models.Project, db: Session) -> str:
+def calculate_project_health(project: models.Project, db: Session, last_commit_at: Optional[datetime] = None) -> str:
     """Classify a project's momentum from its most recent activity: a newly opened
-    position, a newly submitted application, or a newly joined team member — whichever
-    is most recent. Falls back to the project's own creation date if none of those exist
-    yet, so a freshly published project reads as "active" rather than "stale"."""
+    position, a newly submitted application, a newly joined team member, or (when
+    available) a real GitHub commit — whichever is most recent. Falls back to the
+    project's own creation date if none of those exist yet, so a freshly published
+    project reads as "active" rather than "stale"."""
     position_ids = [
         row[0] for row in db.query(models.Position.id).filter(models.Position.project_id == project.id).all()
     ]
@@ -389,6 +390,9 @@ def calculate_project_health(project: models.Project, db: Session) -> str:
     if latest_team_join and latest_team_join[0] > last_activity:
         last_activity = latest_team_join[0]
 
+    if last_commit_at and last_commit_at > last_activity:
+        last_activity = last_commit_at
+
     days_since = (datetime.utcnow() - last_activity).days
 
     if days_since < 7:
@@ -396,6 +400,21 @@ def calculate_project_health(project: models.Project, db: Session) -> str:
     if days_since <= 21:
         return "slow"
     return "stale"
+
+
+def get_project_last_commit(project: models.Project, db: Session) -> Optional[datetime]:
+    """Best-effort fetch of the project's real GitHub last-commit date (cached, see
+    github_utils). Returns None whenever there's no repo, no owner token, or the
+    GitHub request fails for any reason — never raises."""
+    if not project.github_repo_url:
+        return None
+    try:
+        full_repo_name = github_utils.repo_full_name_from_url(project.github_repo_url)
+    except Exception:
+        return None
+    owner = db.query(models.User).filter(models.User.id == project.owner_id).first()
+    access_token = owner.github_access_token if owner else None
+    return github_utils.get_last_commit_date_cached(full_repo_name, access_token)
 
 
 @app.post("/projects", response_model=schemas.ProjectOut)
@@ -459,7 +478,9 @@ def list_projects(
         projects = [p for p in projects if any(tech_lower in t.lower() for t in (p.tech_stack or []))]
 
     for p in projects:
-        p.health = calculate_project_health(p, db)
+        last_commit_at = get_project_last_commit(p, db)
+        p.health = calculate_project_health(p, db, last_commit_at=last_commit_at)
+        p.last_commit_at = last_commit_at
 
     return projects
 
@@ -469,7 +490,9 @@ def get_project(project_id: str, db: Session = Depends(get_db)):
     project = db.query(models.Project).filter(models.Project.id == project_id).first()
     if not project:
         raise HTTPException(status_code=404, detail="Project not found")
-    project.health = calculate_project_health(project, db)
+    last_commit_at = get_project_last_commit(project, db)
+    project.health = calculate_project_health(project, db, last_commit_at=last_commit_at)
+    project.last_commit_at = last_commit_at
     return project
 
 
