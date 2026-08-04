@@ -45,7 +45,7 @@ export default function Login() {
         <div className="flex justify-center mb-4">
           <IconBadge icon={IconLogin} color="blue" />
         </div>
-        <h1 className="text-3xl font-semibold text-navy mb-6 text-center">Log in to DevGym</h1>
+        <h1 className="text-3xl font-semibold text-navy mb-6 text-center">Log in to Ernord</h1>
 
         <form
           onSubmit={handleSubmit}
@@ -67,6 +67,10 @@ export default function Login() {
             required
             className="px-4 py-2 border border-slate-300 rounded-lg bg-white text-navy placeholder:text-secondary focus:outline-none focus:border-accent"
           />
+
+          <a href="/forgot-password" className="text-sm text-navy font-medium -mt-2 self-end">
+            Forgot password?
+          </a>
 
           {error && <p className="text-sm text-red-500">{error}</p>}
 

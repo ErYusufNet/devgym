@@ -4,6 +4,7 @@ from sqlalchemy.orm import Session
 from datetime import datetime
 
 import auth
+import email_utils
 import models
 import schemas
 from database import engine, get_db
@@ -503,3 +504,34 @@ def login(email: str, password: str, db: Session = Depends(get_db)):
 
     token = auth.create_access_token(data={"sub": user.id})
     return {"access_token": token, "token_type": "bearer", "user_id": user.id}
+
+
+@app.post("/forgot-password")
+def forgot_password(payload: schemas.ForgotPasswordRequest, db: Session = Depends(get_db)):
+    user = db.query(models.User).filter(models.User.email == payload.email).first()
+
+    # Always return the same message whether or not the email is registered,
+    # so this endpoint can't be used to enumerate accounts.
+    if user:
+        token = auth.create_password_reset_token(user.id)
+        try:
+            email_utils.send_password_reset_email(user.email, token)
+        except Exception as exc:
+            print(f"[forgot-password] Failed to send reset email to {user.email}: {exc}")
+
+    return {"message": "If this email is registered, a password reset link has been sent."}
+
+
+@app.post("/reset-password")
+def reset_password(payload: schemas.ResetPasswordRequest, db: Session = Depends(get_db)):
+    user_id = auth.verify_password_reset_token(payload.token)
+    if not user_id:
+        raise HTTPException(status_code=400, detail="Invalid or expired reset token")
+
+    user = db.query(models.User).filter(models.User.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=400, detail="Invalid or expired reset token")
+
+    user.password_hash = auth.hash_password(payload.new_password)
+    db.commit()
+    return {"message": "Password has been reset successfully"}

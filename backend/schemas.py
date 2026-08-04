@@ -182,3 +182,14 @@ class EducationOut(BaseModel):
 
     class Config:
         from_attributes = True
+
+
+# ---------- Password Reset ----------
+
+class ForgotPasswordRequest(BaseModel):
+    email: EmailStr
+
+
+class ResetPasswordRequest(BaseModel):
+    token: str
+    new_password: str
