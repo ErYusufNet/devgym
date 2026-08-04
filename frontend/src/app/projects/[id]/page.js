@@ -28,6 +28,9 @@ export default function ProjectDetail() {
   const [commentError, setCommentError] = useState("");
   const [pendingTeammates, setPendingTeammates] = useState([]);
   const [feedbackMessage, setFeedbackMessage] = useState("");
+  const [creatingDiscordRoom, setCreatingDiscordRoom] = useState(false);
+  const [discordRoomError, setDiscordRoomError] = useState("");
+  const [discordRoomResult, setDiscordRoomResult] = useState(null);
 
   const currentUserId = typeof window !== "undefined" ? localStorage.getItem("devgym_user_id") : null;
   const isLoggedIn = typeof window !== "undefined" ? !!localStorage.getItem("devgym_token") : false;
@@ -136,6 +139,29 @@ export default function ProjectDetail() {
     setFeedbackMessage("Feedback submitted — thanks!");
   }
 
+  async function handleCreateDiscordRoom() {
+    setCreatingDiscordRoom(true);
+    setDiscordRoomError("");
+    setDiscordRoomResult(null);
+
+    try {
+      const res = await authFetch(`http://127.0.0.1:8000/projects/${id}/discord-room`, {
+        method: "POST",
+      });
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.detail || "Could not create Discord room");
+      }
+      const data = await res.json();
+      setDiscordRoomResult(data);
+      await fetchData();
+    } catch (err) {
+      setDiscordRoomError(err.message);
+    } finally {
+      setCreatingDiscordRoom(false);
+    }
+  }
+
   async function handleApply(positionId) {
     setMessage("");
 
@@ -177,6 +203,9 @@ export default function ProjectDetail() {
   }
 
   const meta = getProjectTypeMeta(project.project_type);
+  const allPositionsFilled = positions.length > 0 && positions.every((p) => p.status !== "open");
+  const canCreateDiscordRoom =
+    currentUserId === project.owner_id && (allPositionsFilled || project.status === "completed");
 
   return (
     <div className="min-h-screen bg-white px-6 py-12">
@@ -212,6 +241,52 @@ export default function ProjectDetail() {
             >
               Mark as completed
             </button>
+          )}
+
+          {canCreateDiscordRoom && (
+            <div className="mb-4">
+              {project.discord_invite_url ? (
+                <a
+                  href={project.discord_invite_url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg border border-slate-300 text-sm text-navy hover:bg-surface"
+                >
+                  Open Discord room →
+                </a>
+              ) : (
+                <button
+                  onClick={handleCreateDiscordRoom}
+                  disabled={creatingDiscordRoom}
+                  className="px-3 py-1.5 rounded-lg border border-slate-300 text-sm text-navy hover:bg-surface disabled:opacity-50"
+                >
+                  {creatingDiscordRoom ? "Creating Discord room..." : "Create Discord room"}
+                </button>
+              )}
+
+              {discordRoomError && <p className="text-sm text-red-500 mt-2">{discordRoomError}</p>}
+
+              {discordRoomResult && (
+                <div className="mt-2">
+                  <p className="text-sm text-navy">
+                    Discord room created!{" "}
+                    <a
+                      href={discordRoomResult.invite_url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-accent hover:text-accent-hover font-medium"
+                    >
+                      Join here →
+                    </a>
+                  </p>
+                  {discordRoomResult.not_connected.length > 0 && (
+                    <p className="text-xs text-secondary mt-1">
+                      {discordRoomResult.not_connected.length} team member{discordRoomResult.not_connected.length === 1 ? " hasn't" : "s haven't"} connected Discord yet.
+                    </p>
+                  )}
+                </div>
+              )}
+            </div>
           )}
 
           {project.status === "completed" && project.completion_summary && (

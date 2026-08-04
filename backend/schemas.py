@@ -44,13 +44,14 @@ class UserOut(BaseModel):
     years_of_experience: Optional[int] = None
     languages: List[str] = []
     preferred_title: Optional[str] = None
+    discord_id: Optional[str] = None
     created_at: datetime
 
     class Config:
         from_attributes = True
 
 
-# my name is there so i wouldnt be more proud 
+# my name is there so i wouldnt be more proud
 # ---------- Project ----------
 
 class ProjectCreate(BaseModel):
@@ -90,6 +91,8 @@ class ProjectOut(BaseModel):
     created_at: datetime
     health: Optional[str] = None
     completion_summary: Optional[str] = None
+    discord_channel_id: Optional[str] = None
+    discord_invite_url: Optional[str] = None
 
     class Config:
         from_attributes = True
@@ -249,3 +252,9 @@ class ForgotPasswordRequest(BaseModel):
 class ResetPasswordRequest(BaseModel):
     token: str
     new_password: str
+
+
+# ---------- Discord ----------
+
+class DiscordCallbackRequest(BaseModel):
+    code: str

@@ -71,6 +71,7 @@ class User(Base):
     years_of_experience = Column(Integer, nullable=True)
     languages = Column(JSON, default=list)
     preferred_title = Column(String, nullable=True)
+    discord_id = Column(String, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
 
     projects = relationship("Project", back_populates="owner")
@@ -91,6 +92,8 @@ class Project(Base):
     weekly_hours = Column(Integer)
     timezone = Column(String)
     completion_summary = Column(Text, nullable=True)
+    discord_channel_id = Column(String, nullable=True)
+    discord_invite_url = Column(String, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
 
     owner = relationship("User", back_populates="projects")

@@ -9,6 +9,7 @@ import ReputationSummary from "@/components/ReputationSummary";
 import FloatingTechLogosFixed from "@/components/FloatingTechLogosFixed";
 import { StarRatingDisplay } from "@/components/StarRating";
 import { IconBriefcase, IconSchool, IconCode, IconFolder } from "@/components/icons/TablerIcons";
+import { authFetch } from "@/lib/authFetch";
 
 export default function ProfileView({ userId: userIdProp, editable = false }) {
   const [profile, setProfile] = useState(null);
@@ -18,6 +19,8 @@ export default function ProfileView({ userId: userIdProp, editable = false }) {
   const [feedback, setFeedback] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [connectingDiscord, setConnectingDiscord] = useState(false);
+  const [discordError, setDiscordError] = useState("");
 
   useEffect(() => {
     async function loadProfile() {
@@ -62,6 +65,20 @@ export default function ProfileView({ userId: userIdProp, editable = false }) {
   async function handleDeleteEducation(id) {
     await fetch("http://127.0.0.1:8000/education/" + id, { method: "DELETE" });
     setEducation(education.filter((item) => item.id !== id));
+  }
+
+  async function handleConnectDiscord() {
+    setConnectingDiscord(true);
+    setDiscordError("");
+    try {
+      const res = await authFetch("http://127.0.0.1:8000/discord/connect");
+      if (!res.ok) throw new Error("Could not start Discord connection");
+      const data = await res.json();
+      window.location.href = data.url;
+    } catch (err) {
+      setConnectingDiscord(false);
+      setDiscordError(err.message);
+    }
   }
 
   if (loading) {
@@ -119,7 +136,25 @@ export default function ProfileView({ userId: userIdProp, editable = false }) {
               {profile.availability}
             </span>
           )}
+
+          {editable && (
+            profile.discord_id ? (
+              <span className="px-3 py-1 rounded-md bg-green-600/10 text-green-600 font-medium">
+                Discord connected ✓
+              </span>
+            ) : (
+              <button
+                onClick={handleConnectDiscord}
+                disabled={connectingDiscord}
+                className="px-3 py-1 rounded-md border border-slate-300 text-navy hover:bg-surface disabled:opacity-50"
+              >
+                {connectingDiscord ? "Connecting..." : "Connect Discord"}
+              </button>
+            )
+          )}
         </div>
+
+        {discordError && <p className="text-sm text-red-500 -mt-6 mb-8">{discordError}</p>}
 
         <ReputationSummary reputation={profile.reputation} feedback={feedback} />
 

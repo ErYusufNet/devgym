@@ -6,6 +6,7 @@ from sqlalchemy.orm import Session
 from datetime import datetime
 
 import auth
+import discord_utils
 import email_utils
 import models
 import schemas
@@ -206,6 +207,7 @@ def get_user_profile(user_id: str, db: Session = Depends(get_db)):
         "github_username": user.github_username,
         "availability": user.availability,
         "plan": user.plan,
+        "discord_id": user.discord_id,
         "owned_projects": [
             {"id": p.id, "title": p.title, "status": p.status} for p in owned_projects
         ],
@@ -537,6 +539,61 @@ def complete_project(
     db.commit()
     db.refresh(project)
     return project
+
+
+@app.post("/projects/{project_id}/discord-room")
+def create_discord_room(
+    project_id: str,
+    current_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    project = db.query(models.Project).filter(models.Project.id == project_id).first()
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+    if project.owner_id != current_user.id:
+        raise HTTPException(status_code=403, detail="Only the project owner can create a Discord room")
+
+    active_members = db.query(models.TeamMember).filter(
+        models.TeamMember.project_id == project_id,
+        models.TeamMember.left_at.is_(None),
+    ).all()
+
+    relevant_users = []
+    seen_user_ids = set()
+    for member in active_members:
+        user = db.query(models.User).filter(models.User.id == member.user_id).first()
+        if user and user.id not in seen_user_ids:
+            relevant_users.append(user)
+            seen_user_ids.add(user.id)
+
+    # The owner should always be able to see the room they're creating, even if
+    # they aren't in team_members themselves (they only get a row there if they
+    # also hold one of the project's positions).
+    if current_user.id not in seen_user_ids:
+        relevant_users.append(current_user)
+
+    connected_users = [u for u in relevant_users if u.discord_id]
+    not_connected_users = [u for u in relevant_users if not u.discord_id]
+
+    channel_name = discord_utils.slugify_channel_name(project.title)
+
+    try:
+        channel_id = discord_utils.create_team_channel(channel_name, [u.discord_id for u in connected_users])
+        invite_url = discord_utils.create_invite(channel_id)
+    except Exception as exc:
+        raise HTTPException(status_code=502, detail=f"Could not create Discord channel: {exc}")
+
+    project.discord_channel_id = channel_id
+    project.discord_invite_url = invite_url
+    db.commit()
+
+    return {
+        "channel_id": channel_id,
+        "invite_url": invite_url,
+        "not_connected": [
+            {"id": u.id, "full_name": u.full_name, "email": u.email} for u in not_connected_users
+        ],
+    }
 
 
 # ---------- Positions ----------
@@ -997,3 +1054,28 @@ def reset_password(payload: schemas.ResetPasswordRequest, db: Session = Depends(
     user.password_hash = auth.hash_password(payload.new_password)
     db.commit()
     return {"message": "Password has been reset successfully"}
+
+
+# ---------- Discord ----------
+
+@app.get("/discord/connect")
+def discord_connect(current_user: models.User = Depends(get_current_user)):
+    return {"url": discord_utils.get_oauth_url()}
+
+
+@app.post("/discord/callback")
+def discord_callback(
+    payload: schemas.DiscordCallbackRequest,
+    current_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    try:
+        access_token = discord_utils.exchange_code_for_token(payload.code)
+        discord_id = discord_utils.get_discord_user_id(access_token)
+    except Exception as exc:
+        raise HTTPException(status_code=400, detail=f"Could not connect Discord account: {exc}")
+
+    current_user.discord_id = discord_id
+    db.commit()
+    db.refresh(current_user)
+    return {"discord_id": current_user.discord_id}
