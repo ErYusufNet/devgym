@@ -51,17 +51,25 @@ export default function MyProjects() {
     }
   }
 
-  async function handleAccept(applicationId) {
+  async function handleAccept(applicationId, applicantName) {
     setActionMessage("");
     try {
       const res = await authFetch(`http://127.0.0.1:8000/applications/${applicationId}/accept`, {
         method: "POST",
       });
+      const data = await res.json();
       if (!res.ok) {
-        const data = await res.json();
         throw new Error(data.detail || "Could not accept application");
       }
-      setActionMessage("Application accepted!");
+      if (data.github_collaborator_added) {
+        setActionMessage("Accepted and added as a GitHub collaborator ✓");
+      } else if (data.applicant_needs_github) {
+        setActionMessage(
+          `Accepted, but ${applicantName || "this person"} hasn't connected GitHub yet - they'll need to connect it to get repo access.`
+        );
+      } else {
+        setActionMessage("Application accepted!");
+      }
       loadMyProjects();
     } catch (err) {
       setActionMessage(err.message);
@@ -222,7 +230,7 @@ export default function MyProjects() {
                         {app.status === "pending" && (
                           <div className="flex gap-2 shrink-0">
                             <button
-                              onClick={() => handleAccept(app.id)}
+                              onClick={() => handleAccept(app.id, app.applicant_name || app.applicant_email)}
                               className="text-xs px-3 py-1.5 rounded-md bg-green-600 text-white hover:bg-green-700 font-medium transition-colors"
                             >
                               Accept

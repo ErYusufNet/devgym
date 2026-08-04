@@ -772,7 +772,7 @@ def list_applications(db: Session = Depends(get_db)):
     return db.query(models.Application).all()
 
 
-@app.post("/applications/{application_id}/accept", response_model=schemas.ApplicationOut)
+@app.post("/applications/{application_id}/accept")
 def accept_application(
     application_id: str,
     current_user: models.User = Depends(get_current_user),
@@ -820,15 +820,30 @@ def accept_application(
         except Exception as exc:
             print(f"[accept_application] Failed to send acceptance email to {applicant.email}: {exc}")
 
-    owner = db.query(models.User).filter(models.User.id == project.owner_id).first()
-    if applicant and applicant.github_username and project.github_repo_url and owner and owner.github_access_token:
-        try:
-            full_repo_name = github_utils.repo_full_name_from_url(project.github_repo_url)
-            github_utils.add_collaborator(owner.github_access_token, full_repo_name, applicant.github_username)
-        except Exception as exc:
-            print(f"[accept_application] Failed to invite {applicant.github_username} as collaborator: {exc}")
+    github_collaborator_added = False
+    applicant_needs_github = False
 
-    return application
+    owner = db.query(models.User).filter(models.User.id == project.owner_id).first()
+    if project.github_repo_url and applicant:
+        if applicant.github_username and owner and owner.github_access_token:
+            try:
+                full_repo_name = github_utils.repo_full_name_from_url(project.github_repo_url)
+                github_utils.add_collaborator(owner.github_access_token, full_repo_name, applicant.github_username)
+                github_collaborator_added = True
+            except Exception as exc:
+                print(f"[accept_application] Failed to invite {applicant.github_username} as collaborator: {exc}")
+        elif not applicant.github_username:
+            applicant_needs_github = True
+
+    return {
+        "id": application.id,
+        "position_id": application.position_id,
+        "user_id": application.user_id,
+        "status": application.status,
+        "applied_at": application.applied_at,
+        "github_collaborator_added": github_collaborator_added,
+        "applicant_needs_github": applicant_needs_github,
+    }
 
 
 @app.post("/applications/{application_id}/reject", response_model=schemas.ApplicationOut)
