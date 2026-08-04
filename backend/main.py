@@ -9,6 +9,7 @@ import auth
 import email_utils
 import models
 import schemas
+import utils
 from database import engine, get_db
 
 # Create database tables (creates devgym.db on first run)
@@ -60,7 +61,7 @@ def create_user(user: schemas.UserCreate, db: Session = Depends(get_db)):
         full_name=user.full_name,
         bio=user.bio,
         skills=user.skills,
-        experience_level=user.experience_level,
+        experience_level=utils.calculate_experience_level(user.years_of_experience),
         github_username=user.github_username,
         availability=user.availability,
         years_of_experience=user.years_of_experience,
@@ -232,6 +233,11 @@ def update_user(
     update_data = updates.dict(exclude_unset=True)
     for field, value in update_data.items():
         setattr(current_user, field, value)
+
+    # experience_level is derived, never set directly — keep it in sync whenever
+    # years_of_experience changes (and re-derive unconditionally otherwise too,
+    # which is a no-op but keeps this self-healing against any stale stored value).
+    current_user.experience_level = utils.calculate_experience_level(current_user.years_of_experience)
 
     db.commit()
     db.refresh(current_user)

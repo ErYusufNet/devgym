@@ -5,7 +5,15 @@ import { useRouter } from "next/navigation";
 import { authFetch } from "@/lib/authFetch";
 import { POSITION_ROLES } from "@/lib/roles";
 
-const EXPERIENCE_LEVELS = ["student", "junior", "mid", "senior"];
+// Mirrors backend calculate_experience_level() — used only to preview the derived
+// level here; the backend is the source of truth and recomputes it on save.
+function previewExperienceLevel(years) {
+  const n = Number(years) || 0;
+  if (n < 1) return "student";
+  if (n < 3) return "junior";
+  if (n < 6) return "mid";
+  return "senior";
+}
 
 export default function EditProfile() {
   const router = useRouter();
@@ -13,7 +21,6 @@ export default function EditProfile() {
   const [fullName, setFullName] = useState("");
   const [bio, setBio] = useState("");
   const [skills, setSkills] = useState("");
-  const [experienceLevel, setExperienceLevel] = useState("");
   const [githubUsername, setGithubUsername] = useState("");
   const [availability, setAvailability] = useState("");
   const [yearsOfExperience, setYearsOfExperience] = useState("");
@@ -41,7 +48,6 @@ export default function EditProfile() {
         setFullName(data.full_name || "");
         setBio(data.bio || "");
         setSkills((data.skills || []).join(", "));
-        setExperienceLevel(data.experience_level || "");
         setGithubUsername(data.github_username || "");
         setAvailability(data.availability || "");
         setYearsOfExperience(data.years_of_experience ?? "");
@@ -76,7 +82,6 @@ export default function EditProfile() {
           full_name: fullName,
           bio,
           skills: skills.split(",").map((s) => s.trim()).filter(Boolean),
-          experience_level: experienceLevel || null,
           github_username: githubUsername,
           availability,
           years_of_experience: yearsOfExperience ? parseInt(yearsOfExperience) : null,
@@ -136,25 +141,19 @@ export default function EditProfile() {
             className="px-4 py-2 border border-slate-300 rounded-lg bg-white text-navy placeholder:text-secondary focus:outline-none focus:border-accent"
           />
 
-          <select
-            value={experienceLevel}
-            onChange={(e) => setExperienceLevel(e.target.value)}
-            className="px-4 py-2 border border-slate-300 rounded-lg bg-white text-navy focus:outline-none focus:border-accent"
-          >
-            <option value="">Experience level</option>
-            {EXPERIENCE_LEVELS.map((level) => (
-              <option key={level} value={level}>{level}</option>
-            ))}
-          </select>
-
-          <input
-            type="number"
-            min="0"
-            placeholder="Years of experience"
-            value={yearsOfExperience}
-            onChange={(e) => setYearsOfExperience(e.target.value)}
-            className="px-4 py-2 border border-slate-300 rounded-lg bg-white text-navy placeholder:text-secondary focus:outline-none focus:border-accent"
-          />
+          <div className="flex flex-col gap-1">
+            <input
+              type="number"
+              min="0"
+              placeholder="Years of experience"
+              value={yearsOfExperience}
+              onChange={(e) => setYearsOfExperience(e.target.value)}
+              className="px-4 py-2 border border-slate-300 rounded-lg bg-white text-navy placeholder:text-secondary focus:outline-none focus:border-accent"
+            />
+            <p className="text-xs text-secondary px-1">
+              Experience level: <span className="capitalize">{previewExperienceLevel(yearsOfExperience)}</span> (calculated automatically)
+            </p>
+          </div>
 
           <input
             type="text"

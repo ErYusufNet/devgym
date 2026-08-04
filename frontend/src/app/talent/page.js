@@ -147,12 +147,19 @@ export default function Talent() {
                     </div>
                   </div>
 
-                  {candidate.reputation.avg_overall != null && (
-                    <div className="flex items-center gap-1.5 shrink-0">
-                      <StarRatingDisplay rating={candidate.reputation.avg_overall} size="w-3.5 h-3.5" />
-                      <span className="text-xs text-secondary">{candidate.reputation.avg_overall}</span>
-                    </div>
-                  )}
+                  <div className="flex flex-col items-end gap-1.5 shrink-0">
+                    {candidate.experience_level && (
+                      <span className="text-xs px-2 py-1 rounded-md bg-surface text-secondary capitalize">
+                        {candidate.experience_level}
+                      </span>
+                    )}
+                    {candidate.reputation.avg_overall != null && (
+                      <div className="flex items-center gap-1.5">
+                        <StarRatingDisplay rating={candidate.reputation.avg_overall} size="w-3.5 h-3.5" />
+                        <span className="text-xs text-secondary">{candidate.reputation.avg_overall}</span>
+                      </div>
+                    )}
+                  </div>
                 </div>
 
                 {candidate.bio && (

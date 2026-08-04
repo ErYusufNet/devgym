@@ -11,6 +11,7 @@ export default function Register() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [fullName, setFullName] = useState("");
+  const [yearsOfExperience, setYearsOfExperience] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -27,6 +28,7 @@ export default function Register() {
           email,
           password,
           full_name: fullName,
+          years_of_experience: yearsOfExperience ? parseInt(yearsOfExperience) : null,
         }),
       });
 
@@ -77,6 +79,14 @@ export default function Register() {
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             required
+            className="px-4 py-2 border border-slate-300 rounded-lg bg-white text-navy placeholder:text-secondary focus:outline-none focus:border-accent"
+          />
+          <input
+            type="number"
+            min="0"
+            placeholder="Years of experience (optional)"
+            value={yearsOfExperience}
+            onChange={(e) => setYearsOfExperience(e.target.value)}
             className="px-4 py-2 border border-slate-300 rounded-lg bg-white text-navy placeholder:text-secondary focus:outline-none focus:border-accent"
           />
 

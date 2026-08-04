@@ -13,7 +13,6 @@ class UserCreate(BaseModel):
     full_name: Optional[str] = None
     bio: Optional[str] = None
     skills: Optional[List[str]] = []
-    experience_level: Optional[ExperienceLevel] = None
     github_username: Optional[str] = None
     availability: Optional[str] = None
     years_of_experience: Optional[int] = None
@@ -25,7 +24,6 @@ class UserUpdate(BaseModel):
     full_name: Optional[str] = None
     bio: Optional[str] = None
     skills: Optional[List[str]] = None
-    experience_level: Optional[ExperienceLevel] = None
     github_username: Optional[str] = None
     availability: Optional[str] = None
     years_of_experience: Optional[int] = None
