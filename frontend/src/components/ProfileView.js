@@ -21,6 +21,8 @@ export default function ProfileView({ userId: userIdProp, editable = false }) {
   const [error, setError] = useState("");
   const [connectingDiscord, setConnectingDiscord] = useState(false);
   const [discordError, setDiscordError] = useState("");
+  const [connectingGithub, setConnectingGithub] = useState(false);
+  const [githubError, setGithubError] = useState("");
 
   useEffect(() => {
     async function loadProfile() {
@@ -78,6 +80,20 @@ export default function ProfileView({ userId: userIdProp, editable = false }) {
     } catch (err) {
       setConnectingDiscord(false);
       setDiscordError(err.message);
+    }
+  }
+
+  async function handleConnectGithub() {
+    setConnectingGithub(true);
+    setGithubError("");
+    try {
+      const res = await authFetch("http://127.0.0.1:8000/github/connect");
+      if (!res.ok) throw new Error("Could not start GitHub connection");
+      const data = await res.json();
+      window.location.href = data.url;
+    } catch (err) {
+      setConnectingGithub(false);
+      setGithubError(err.message);
     }
   }
 
@@ -152,9 +168,26 @@ export default function ProfileView({ userId: userIdProp, editable = false }) {
               </button>
             )
           )}
+
+          {editable && (
+            profile.github_connected ? (
+              <span className="px-3 py-1 rounded-md bg-green-600/10 text-green-600 font-medium">
+                GitHub connected ✓ (@{profile.github_username})
+              </span>
+            ) : (
+              <button
+                onClick={handleConnectGithub}
+                disabled={connectingGithub}
+                className="px-3 py-1 rounded-md border border-slate-300 text-navy hover:bg-surface disabled:opacity-50"
+              >
+                {connectingGithub ? "Connecting..." : "Connect GitHub"}
+              </button>
+            )
+          )}
         </div>
 
         {discordError && <p className="text-sm text-red-500 -mt-6 mb-8">{discordError}</p>}
+        {githubError && <p className="text-sm text-red-500 -mt-6 mb-8">{githubError}</p>}
 
         <ReputationSummary reputation={profile.reputation} feedback={feedback} />
 

@@ -8,6 +8,7 @@ from datetime import datetime
 import auth
 import discord_utils
 import email_utils
+import github_utils
 import models
 import schemas
 import utils
@@ -205,6 +206,7 @@ def get_user_profile(user_id: str, db: Session = Depends(get_db)):
         "skills": user.skills,
         "experience_level": user.experience_level,
         "github_username": user.github_username,
+        "github_connected": bool(user.github_access_token),
         "availability": user.availability,
         "plan": user.plan,
         "discord_id": user.discord_id,
@@ -596,6 +598,64 @@ def create_discord_room(
     }
 
 
+@app.post("/projects/{project_id}/create-repo")
+def create_project_repo(
+    project_id: str,
+    current_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    project = db.query(models.Project).filter(models.Project.id == project_id).first()
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+    if project.owner_id != current_user.id:
+        raise HTTPException(status_code=403, detail="Only the project owner can create a GitHub repo")
+    if not current_user.github_access_token:
+        raise HTTPException(status_code=400, detail="You must connect GitHub first")
+
+    repo_name = github_utils.slugify_repo_name(project.title)
+
+    try:
+        repo = github_utils.create_repo(current_user.github_access_token, repo_name, project.description)
+    except Exception as exc:
+        raise HTTPException(status_code=502, detail=f"Could not create GitHub repo: {exc}")
+
+    project.github_repo_url = repo["html_url"]
+    db.commit()
+
+    active_members = db.query(models.TeamMember).filter(
+        models.TeamMember.project_id == project_id,
+        models.TeamMember.left_at.is_(None),
+    ).all()
+
+    relevant_users = []
+    seen_user_ids = set()
+    for member in active_members:
+        user = db.query(models.User).filter(models.User.id == member.user_id).first()
+        if user and user.id not in seen_user_ids and user.id != current_user.id:
+            relevant_users.append(user)
+            seen_user_ids.add(user.id)
+
+    not_connected_users = [u for u in relevant_users if not u.github_username]
+    invited_users = []
+    for user in relevant_users:
+        if not user.github_username:
+            continue
+        try:
+            github_utils.add_collaborator(current_user.github_access_token, repo["full_name"], user.github_username)
+            invited_users.append(user)
+        except Exception as exc:
+            print(f"[create_project_repo] Failed to invite {user.github_username} as collaborator: {exc}")
+            not_connected_users.append(user)
+
+    return {
+        "repo_url": project.github_repo_url,
+        "invited": [{"id": u.id, "full_name": u.full_name, "github_username": u.github_username} for u in invited_users],
+        "not_connected": [
+            {"id": u.id, "full_name": u.full_name, "email": u.email} for u in not_connected_users
+        ],
+    }
+
+
 # ---------- Positions ----------
 
 @app.post("/projects/{project_id}/positions", response_model=schemas.PositionOut)
@@ -759,6 +819,14 @@ def accept_application(
             )
         except Exception as exc:
             print(f"[accept_application] Failed to send acceptance email to {applicant.email}: {exc}")
+
+    owner = db.query(models.User).filter(models.User.id == project.owner_id).first()
+    if applicant and applicant.github_username and project.github_repo_url and owner and owner.github_access_token:
+        try:
+            full_repo_name = github_utils.repo_full_name_from_url(project.github_repo_url)
+            github_utils.add_collaborator(owner.github_access_token, full_repo_name, applicant.github_username)
+        except Exception as exc:
+            print(f"[accept_application] Failed to invite {applicant.github_username} as collaborator: {exc}")
 
     return application
 
@@ -1079,3 +1147,29 @@ def discord_callback(
     db.commit()
     db.refresh(current_user)
     return {"discord_id": current_user.discord_id}
+
+
+# ---------- GitHub ----------
+
+@app.get("/github/connect")
+def github_connect(current_user: models.User = Depends(get_current_user)):
+    return {"url": github_utils.get_oauth_url()}
+
+
+@app.post("/github/callback")
+def github_callback(
+    payload: schemas.GithubCallbackRequest,
+    current_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    try:
+        access_token = github_utils.exchange_code_for_token(payload.code)
+        github_username = github_utils.get_github_username(access_token)
+    except Exception as exc:
+        raise HTTPException(status_code=400, detail=f"Could not connect GitHub account: {exc}")
+
+    current_user.github_username = github_username
+    current_user.github_access_token = access_token
+    db.commit()
+    db.refresh(current_user)
+    return {"github_username": current_user.github_username, "github_connected": True}

@@ -258,3 +258,9 @@ class ResetPasswordRequest(BaseModel):
 
 class DiscordCallbackRequest(BaseModel):
     code: str
+
+
+# ---------- GitHub ----------
+
+class GithubCallbackRequest(BaseModel):
+    code: str

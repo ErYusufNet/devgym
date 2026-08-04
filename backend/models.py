@@ -72,6 +72,7 @@ class User(Base):
     languages = Column(JSON, default=list)
     preferred_title = Column(String, nullable=True)
     discord_id = Column(String, nullable=True)
+    github_access_token = Column(String, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
 
     projects = relationship("Project", back_populates="owner")

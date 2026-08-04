@@ -31,6 +31,9 @@ export default function ProjectDetail() {
   const [creatingDiscordRoom, setCreatingDiscordRoom] = useState(false);
   const [discordRoomError, setDiscordRoomError] = useState("");
   const [discordRoomResult, setDiscordRoomResult] = useState(null);
+  const [creatingGithubRepo, setCreatingGithubRepo] = useState(false);
+  const [githubRepoError, setGithubRepoError] = useState("");
+  const [githubRepoResult, setGithubRepoResult] = useState(null);
 
   const currentUserId = typeof window !== "undefined" ? localStorage.getItem("devgym_user_id") : null;
   const isLoggedIn = typeof window !== "undefined" ? !!localStorage.getItem("devgym_token") : false;
@@ -162,6 +165,28 @@ export default function ProjectDetail() {
     }
   }
 
+  async function handleCreateGithubRepo() {
+    setCreatingGithubRepo(true);
+    setGithubRepoError("");
+    setGithubRepoResult(null);
+
+    try {
+      const res = await authFetch(`http://127.0.0.1:8000/projects/${id}/create-repo`, {
+        method: "POST",
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.detail || "Could not create GitHub repo");
+      }
+      setGithubRepoResult(data);
+      await fetchData();
+    } catch (err) {
+      setGithubRepoError(err.message);
+    } finally {
+      setCreatingGithubRepo(false);
+    }
+  }
+
   async function handleApply(positionId) {
     setMessage("");
 
@@ -206,6 +231,7 @@ export default function ProjectDetail() {
   const allPositionsFilled = positions.length > 0 && positions.every((p) => p.status !== "open");
   const canCreateDiscordRoom =
     currentUserId === project.owner_id && (allPositionsFilled || project.status === "completed");
+  const isOwner = currentUserId === project.owner_id;
 
   return (
     <div className="min-h-screen bg-white px-6 py-12">
@@ -308,10 +334,43 @@ export default function ProjectDetail() {
             {project.timezone && <span>{project.timezone}</span>}
           </div>
 
-          {project.github_repo_url && (
+          {project.github_repo_url ? (
             <a href={project.github_repo_url} target="_blank" rel="noopener noreferrer" className="text-sm text-accent hover:text-accent-hover mb-8 inline-block">
-              View GitHub repository
+              View on GitHub →
             </a>
+          ) : isOwner && (
+            <div className="mb-8">
+              <button
+                onClick={handleCreateGithubRepo}
+                disabled={creatingGithubRepo}
+                className="px-3 py-1.5 rounded-lg border border-slate-300 text-sm text-navy hover:bg-surface disabled:opacity-50"
+              >
+                {creatingGithubRepo ? "Creating GitHub repo..." : "Create GitHub repo"}
+              </button>
+
+              {githubRepoError && <p className="text-sm text-red-500 mt-2">{githubRepoError}</p>}
+
+              {githubRepoResult && (
+                <div className="mt-2">
+                  <p className="text-sm text-navy">
+                    GitHub repo created!{" "}
+                    <a
+                      href={githubRepoResult.repo_url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-accent hover:text-accent-hover font-medium"
+                    >
+                      View on GitHub →
+                    </a>
+                  </p>
+                  {githubRepoResult.not_connected.length > 0 && (
+                    <p className="text-xs text-secondary mt-1">
+                      {githubRepoResult.not_connected.length} team member{githubRepoResult.not_connected.length === 1 ? " hasn't" : "s haven't"} connected GitHub, so {githubRepoResult.not_connected.length === 1 ? "they" : "they"} couldn&apos;t be invited as a collaborator.
+                    </p>
+                  )}
+                </div>
+              )}
+            </div>
           )}
         </ScrollReveal>
 
