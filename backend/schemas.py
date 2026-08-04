@@ -184,6 +184,24 @@ class EducationOut(BaseModel):
         from_attributes = True
 
 
+# ---------- Project Comment ----------
+
+class ProjectCommentCreate(BaseModel):
+    content: str
+
+
+class ProjectCommentOut(BaseModel):
+    id: str
+    project_id: str
+    user_id: str
+    content: str
+    created_at: datetime
+    author_name: Optional[str] = None
+
+    class Config:
+        from_attributes = True
+
+
 # ---------- Password Reset ----------
 
 class ForgotPasswordRequest(BaseModel):

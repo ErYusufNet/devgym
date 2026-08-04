@@ -154,3 +154,13 @@ class Education(Base):
     end_date = Column(String, nullable=True)
     description = Column(Text, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
+
+
+class ProjectComment(Base):
+    __tablename__ = "project_comments"
+
+    id = Column(String, primary_key=True, default=generate_uuid)
+    project_id = Column(String, ForeignKey("projects.id"), nullable=False)
+    user_id = Column(String, ForeignKey("users.id"), nullable=False)
+    content = Column(Text, nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow)

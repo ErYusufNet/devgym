@@ -1,3 +1,5 @@
+from typing import Optional
+
 from fastapi import FastAPI, Depends, HTTPException, Header
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
@@ -249,8 +251,43 @@ def create_project(
 
 
 @app.get("/projects", response_model=list[schemas.ProjectOut])
-def list_projects(db: Session = Depends(get_db)):
-    return db.query(models.Project).all()
+def list_projects(
+    role: Optional[str] = None,
+    tech: Optional[str] = None,
+    project_type: Optional[models.ProjectType] = None,
+    duration_weeks: Optional[int] = None,
+    weekly_hours: Optional[int] = None,
+    has_open_position: bool = True,
+    db: Session = Depends(get_db),
+):
+    query = db.query(models.Project)
+
+    if project_type:
+        query = query.filter(models.Project.project_type == project_type)
+    if duration_weeks is not None:
+        query = query.filter(models.Project.duration_weeks <= duration_weeks)
+    if weekly_hours is not None:
+        query = query.filter(models.Project.weekly_hours <= weekly_hours)
+
+    if role or has_open_position:
+        position_filters = []
+        if has_open_position:
+            position_filters.append(models.Position.status == models.PositionStatus.open)
+        if role:
+            position_filters.append(models.Position.role_name.ilike(f"%{role}%"))
+
+        matching_project_ids = [
+            row[0] for row in db.query(models.Position.project_id).filter(*position_filters).distinct().all()
+        ]
+        query = query.filter(models.Project.id.in_(matching_project_ids))
+
+    projects = query.all()
+
+    if tech:
+        tech_lower = tech.lower()
+        projects = [p for p in projects if any(tech_lower in t.lower() for t in (p.tech_stack or []))]
+
+    return projects
 
 
 @app.get("/projects/{project_id}", response_model=schemas.ProjectOut)
@@ -302,9 +339,28 @@ def delete_project(
     db.query(models.Application).filter(models.Application.position_id.in_(position_ids)).delete(synchronize_session=False)
     db.query(models.TeamMember).filter(models.TeamMember.project_id == project_id).delete(synchronize_session=False)
     db.query(models.Position).filter(models.Position.project_id == project_id).delete(synchronize_session=False)
+    db.query(models.ProjectComment).filter(models.ProjectComment.project_id == project_id).delete(synchronize_session=False)
     db.delete(project)
     db.commit()
     return {"ok": True}
+
+
+@app.put("/projects/{project_id}/complete", response_model=schemas.ProjectOut)
+def complete_project(
+    project_id: str,
+    current_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    project = db.query(models.Project).filter(models.Project.id == project_id).first()
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+    if project.owner_id != current_user.id:
+        raise HTTPException(status_code=403, detail="Only the project owner can mark this project as completed")
+
+    project.status = models.ProjectStatus.completed
+    db.commit()
+    db.refresh(project)
+    return project
 
 
 # ---------- Positions ----------
@@ -329,6 +385,12 @@ def create_position(project_id: str, position: schemas.PositionCreate, db: Sessi
 @app.get("/projects/{project_id}/positions", response_model=list[schemas.PositionOut])
 def list_positions(project_id: str, db: Session = Depends(get_db)):
     return db.query(models.Position).filter(models.Position.project_id == project_id).all()
+
+
+@app.get("/positions/roles", response_model=list[str])
+def list_position_roles(db: Session = Depends(get_db)):
+    rows = db.query(models.Position.role_name).distinct().all()
+    return sorted({row[0] for row in rows if row[0]})
 
 
 @app.delete("/projects/{project_id}/positions/{position_id}")
@@ -435,6 +497,9 @@ def accept_application(
     )
     db.add(new_member)
 
+    # Once every position on a project is filled, it has no more open positions, so it
+    # stops matching GET /projects' default has_open_position=true filter and drops out
+    # of Discover — even though project.status stays "active" until the owner completes it.
     position.status = models.PositionStatus.filled
 
     db.commit()
@@ -492,6 +557,61 @@ def leave_team(
     db.commit()
     db.refresh(member)
     return member
+
+
+# ---------- Project Comments ----------
+
+@app.post("/projects/{project_id}/comments", response_model=schemas.ProjectCommentOut)
+def create_project_comment(
+    project_id: str,
+    comment: schemas.ProjectCommentCreate,
+    current_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    project = db.query(models.Project).filter(models.Project.id == project_id).first()
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+
+    new_comment = models.ProjectComment(
+        project_id=project_id,
+        user_id=current_user.id,
+        content=comment.content,
+    )
+    db.add(new_comment)
+    db.commit()
+    db.refresh(new_comment)
+
+    return {
+        "id": new_comment.id,
+        "project_id": new_comment.project_id,
+        "user_id": new_comment.user_id,
+        "content": new_comment.content,
+        "created_at": new_comment.created_at,
+        "author_name": current_user.full_name or current_user.email,
+    }
+
+
+@app.get("/projects/{project_id}/comments", response_model=list[schemas.ProjectCommentOut])
+def list_project_comments(project_id: str, db: Session = Depends(get_db)):
+    comments = (
+        db.query(models.ProjectComment)
+        .filter(models.ProjectComment.project_id == project_id)
+        .order_by(models.ProjectComment.created_at.asc())
+        .all()
+    )
+
+    result = []
+    for c in comments:
+        author = db.query(models.User).filter(models.User.id == c.user_id).first()
+        result.append({
+            "id": c.id,
+            "project_id": c.project_id,
+            "user_id": c.user_id,
+            "content": c.content,
+            "created_at": c.created_at,
+            "author_name": (author.full_name or author.email) if author else None,
+        })
+    return result
 
 
 # ---------- Auth ----------

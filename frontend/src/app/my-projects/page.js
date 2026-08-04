@@ -29,7 +29,7 @@ export default function MyProjects() {
     }
 
     try {
-      const res = await fetch("http://127.0.0.1:8000/projects");
+      const res = await fetch("http://127.0.0.1:8000/projects?has_open_position=false");
       const allProjects = await res.json();
       const myProjects = allProjects.filter((p) => p.owner_id === userId);
       setProjects(myProjects);
@@ -75,6 +75,23 @@ export default function MyProjects() {
         throw new Error(data.detail || "Could not reject application");
       }
       setActionMessage("Application rejected.");
+      loadMyProjects();
+    } catch (err) {
+      setActionMessage(err.message);
+    }
+  }
+
+  async function handleComplete(projectId) {
+    setActionMessage("");
+    try {
+      const res = await authFetch(`http://127.0.0.1:8000/projects/${projectId}/complete`, {
+        method: "PUT",
+      });
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.detail || "Could not mark project as completed");
+      }
+      setActionMessage("Project marked as completed!");
       loadMyProjects();
     } catch (err) {
       setActionMessage(err.message);
@@ -151,9 +168,23 @@ export default function MyProjects() {
                   <IconBadge icon={meta.icon} color={meta.color} />
 
                   <h2 className="text-lg font-semibold text-navy mt-4 mb-1 pr-20">{project.title}</h2>
-                  <span className="inline-block px-2.5 py-1 rounded-full bg-blue-600/10 text-blue-600 text-xs font-medium mb-4">
-                    {applications.length} application{applications.length === 1 ? "" : "s"}
-                  </span>
+                  <div className="flex flex-wrap items-center gap-2 mb-4">
+                    <span className="inline-block px-2.5 py-1 rounded-full bg-blue-600/10 text-blue-600 text-xs font-medium">
+                      {applications.length} application{applications.length === 1 ? "" : "s"}
+                    </span>
+                    {project.status === "completed" ? (
+                      <span className="inline-block px-2.5 py-1 rounded-full bg-green-600/10 text-green-600 text-xs font-medium">
+                        🎉 Completed
+                      </span>
+                    ) : (
+                      <button
+                        onClick={() => handleComplete(project.id)}
+                        className="px-2.5 py-1 rounded-full border border-slate-300 text-secondary hover:text-navy hover:bg-surface text-xs font-medium"
+                      >
+                        Mark as completed
+                      </button>
+                    )}
+                  </div>
 
                   <div className="flex flex-col gap-2">
                     {applications.map((app) => (

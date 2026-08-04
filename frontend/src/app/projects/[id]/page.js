@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import ScrollReveal from "@/components/ScrollReveal";
 import IconBadge from "@/components/IconBadge";
-import { IconUsers } from "@/components/icons/TablerIcons";
+import { IconUsers, IconHeartHandshake } from "@/components/icons/TablerIcons";
 import { getProjectTypeMeta } from "@/lib/projectTypeMeta";
 import { authFetch } from "@/lib/authFetch";
 
@@ -12,10 +12,18 @@ export default function ProjectDetail() {
   const { id } = useParams();
   const [project, setProject] = useState(null);
   const [positions, setPositions] = useState([]);
+  const [comments, setComments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [applyingTo, setApplyingTo] = useState(null);
   const [message, setMessage] = useState("");
+  const [completing, setCompleting] = useState(false);
+  const [commentText, setCommentText] = useState("");
+  const [postingComment, setPostingComment] = useState(false);
+  const [commentError, setCommentError] = useState("");
+
+  const currentUserId = typeof window !== "undefined" ? localStorage.getItem("devgym_user_id") : null;
+  const isLoggedIn = typeof window !== "undefined" ? !!localStorage.getItem("devgym_token") : false;
 
   useEffect(() => {
     fetchData();
@@ -35,10 +43,64 @@ export default function ProjectDetail() {
 
       setProject(projectData);
       setPositions(positionsData);
+
+      if (projectData.status === "completed") {
+        const commentsRes = await fetch(`http://127.0.0.1:8000/projects/${id}/comments`);
+        if (commentsRes.ok) {
+          setComments(await commentsRes.json());
+        }
+      }
     } catch (err) {
       setError(err.message);
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function handleComplete() {
+    setCompleting(true);
+    setMessage("");
+    try {
+      const res = await authFetch(`http://127.0.0.1:8000/projects/${id}/complete`, {
+        method: "PUT",
+      });
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.detail || "Could not mark project as completed");
+      }
+      await fetchData();
+      setMessage("Project marked as completed!");
+    } catch (err) {
+      setMessage(err.message);
+    } finally {
+      setCompleting(false);
+    }
+  }
+
+  async function handlePostComment(e) {
+    e.preventDefault();
+    setCommentError("");
+
+    if (!commentText.trim()) return;
+
+    setPostingComment(true);
+    try {
+      const res = await authFetch(`http://127.0.0.1:8000/projects/${id}/comments`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ content: commentText.trim() }),
+      });
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.detail || "Could not post comment");
+      }
+      const newComment = await res.json();
+      setComments([...comments, newComment]);
+      setCommentText("");
+    } catch (err) {
+      setCommentError(err.message);
+    } finally {
+      setPostingComment(false);
     }
   }
 
@@ -90,15 +152,32 @@ export default function ProjectDetail() {
         <ScrollReveal>
           <div className="flex items-start justify-between mb-4">
             <IconBadge icon={meta.icon} color={meta.color} />
-            {project.project_type && (
-              <span className="text-xs px-2 py-1 rounded-md bg-surface text-secondary capitalize">
-                {project.project_type}
-              </span>
-            )}
+            <div className="flex items-center gap-2">
+              {project.status === "completed" && (
+                <span className="text-xs px-2 py-1 rounded-full bg-green-600/10 text-green-600 font-medium">
+                  🎉 Completed
+                </span>
+              )}
+              {project.project_type && (
+                <span className="text-xs px-2 py-1 rounded-md bg-surface text-secondary capitalize">
+                  {project.project_type}
+                </span>
+              )}
+            </div>
           </div>
 
           <h1 className="text-3xl font-semibold text-navy mb-2">{project.title}</h1>
           <p className="text-secondary mb-4">{project.description}</p>
+
+          {currentUserId === project.owner_id && project.status !== "completed" && (
+            <button
+              onClick={handleComplete}
+              disabled={completing}
+              className="mb-4 px-3 py-1.5 rounded-lg border border-slate-300 text-sm text-navy hover:bg-surface disabled:opacity-50"
+            >
+              {completing ? "Marking as completed..." : "Mark as completed"}
+            </button>
+          )}
 
           <div className="flex flex-wrap gap-2 mb-4">
             {project.tech_stack.map((tech) => (
@@ -162,6 +241,62 @@ export default function ProjectDetail() {
             )}
           </div>
         </ScrollReveal>
+
+        {project.status === "completed" && (
+          <ScrollReveal className="mt-8">
+            <div className="flex items-center gap-3 mb-4">
+              <IconBadge icon={IconHeartHandshake} color="pink" size="sm" />
+              <h2 className="text-xl font-semibold text-navy">Comments</h2>
+            </div>
+
+            <div className="flex flex-col gap-3 mb-4">
+              {comments.map((comment) => (
+                <div key={comment.id} className="border border-slate-200 rounded-xl p-4 bg-white shadow-sm">
+                  <div className="flex items-center gap-3 mb-2">
+                    <div className="w-8 h-8 rounded-full bg-blue-600/10 text-blue-600 flex items-center justify-center text-xs font-semibold shrink-0">
+                      {(comment.author_name || "?")[0].toUpperCase()}
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-navy">{comment.author_name || "Unknown"}</p>
+                      <p className="text-xs text-secondary">
+                        {new Date(comment.created_at).toLocaleDateString()}
+                      </p>
+                    </div>
+                  </div>
+                  <p className="text-sm text-secondary">{comment.content}</p>
+                </div>
+              ))}
+
+              {comments.length === 0 && (
+                <p className="text-secondary text-sm">No comments yet.</p>
+              )}
+            </div>
+
+            {isLoggedIn ? (
+              <form onSubmit={handlePostComment} className="flex flex-col gap-2">
+                <textarea
+                  value={commentText}
+                  onChange={(e) => setCommentText(e.target.value)}
+                  placeholder="Share your thoughts on this project..."
+                  rows={3}
+                  className="px-4 py-2 border border-slate-300 rounded-lg bg-white text-navy placeholder:text-secondary focus:outline-none focus:border-accent resize-none"
+                />
+                {commentError && <p className="text-sm text-red-500">{commentError}</p>}
+                <button
+                  type="submit"
+                  disabled={postingComment || !commentText.trim()}
+                  className="self-end px-4 py-2 bg-accent text-white rounded-lg text-sm font-medium hover:bg-accent-hover disabled:opacity-50"
+                >
+                  {postingComment ? "Posting..." : "Post comment"}
+                </button>
+              </form>
+            ) : (
+              <p className="text-sm text-secondary">
+                <a href="/login" className="text-accent hover:text-accent-hover font-medium">Log in</a> to leave a comment.
+              </p>
+            )}
+          </ScrollReveal>
+        )}
       </div>
     </div>
   );
