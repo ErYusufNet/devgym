@@ -205,7 +205,7 @@ export default function ProfileView({ userId: userIdProp, editable = false }) {
           </ScrollReveal>
         )}
 
-        <ScrollReveal className="mb-10">
+        <ScrollReveal className="mb-10 border border-card-border rounded-xl bg-card p-6 shadow-sm">
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-3">
               <IconBadge icon={IconBriefcase} color="blue" size="sm" />
@@ -222,7 +222,7 @@ export default function ProfileView({ userId: userIdProp, editable = false }) {
           </div>
           <div className="flex flex-col gap-3">
             {workExperience.map((item) => (
-              <div key={item.id} className="border border-card-border rounded-xl p-5 bg-card shadow-sm hover:shadow-md transition-shadow flex items-start gap-4">
+              <div key={item.id} className="border border-card-border rounded-xl p-5 bg-white shadow-sm hover:shadow-md transition-shadow flex items-start gap-4">
                 <IconBadge icon={IconBriefcase} color="blue" size="sm" />
                 <div className="flex-1 flex items-start justify-between gap-3">
                   <div>
@@ -247,7 +247,7 @@ export default function ProfileView({ userId: userIdProp, editable = false }) {
           </div>
         </ScrollReveal>
 
-        <ScrollReveal className="mb-10">
+        <ScrollReveal className="mb-10 border border-card-border rounded-xl bg-card p-6 shadow-sm">
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-3">
               <IconBadge icon={IconSchool} color="purple" size="sm" />
@@ -264,7 +264,7 @@ export default function ProfileView({ userId: userIdProp, editable = false }) {
           </div>
           <div className="flex flex-col gap-3">
             {education.map((item) => (
-              <div key={item.id} className="border border-card-border rounded-xl p-5 bg-card shadow-sm hover:shadow-md transition-shadow flex items-start gap-4">
+              <div key={item.id} className="border border-card-border rounded-xl p-5 bg-white shadow-sm hover:shadow-md transition-shadow flex items-start gap-4">
                 <IconBadge icon={IconSchool} color="purple" size="sm" />
                 <div className="flex-1 flex items-start justify-between gap-3">
                   <div>
@@ -289,18 +289,18 @@ export default function ProfileView({ userId: userIdProp, editable = false }) {
           </div>
         </ScrollReveal>
 
-        <ScrollReveal className="mb-10">
+        <ScrollReveal className="mb-10 border border-card-border rounded-xl bg-card p-6 shadow-sm">
           <ActivityHeatmap activity={activity} />
         </ScrollReveal>
 
-        <ScrollReveal className="mb-10">
+        <ScrollReveal className="mb-10 border border-card-border rounded-xl bg-card p-6 shadow-sm">
           <div className="flex items-center gap-3 mb-3">
             <IconBadge icon={IconFolder} color="blue" size="sm" />
             <h2 className="text-base font-semibold text-navy">Projects published ({profile.owned_projects.length})</h2>
           </div>
           <div className="flex flex-col gap-2">
             {profile.owned_projects.map((p) => (
-              <a key={p.id} href={"/projects/" + p.id} className="border border-card-border rounded-xl px-4 py-3 text-sm text-navy bg-card shadow-sm hover:shadow-md transition-shadow flex items-center justify-between">
+              <a key={p.id} href={"/projects/" + p.id} className="border border-card-border rounded-xl px-4 py-3 text-sm text-navy bg-white shadow-sm hover:shadow-md transition-shadow flex items-center justify-between">
                 <span>{p.title}</span>
                 <span className="text-xs text-secondary capitalize">{p.status}</span>
               </a>
@@ -311,7 +311,7 @@ export default function ProfileView({ userId: userIdProp, editable = false }) {
           </div>
         </ScrollReveal>
 
-        <ScrollReveal>
+        <ScrollReveal className="border border-card-border rounded-xl bg-card p-6 shadow-sm">
           <div className="flex items-center justify-between gap-3 mb-3">
             <div className="flex items-center gap-3">
               <IconBadge icon={IconFolder} color="purple" size="sm" />
@@ -325,7 +325,7 @@ export default function ProfileView({ userId: userIdProp, editable = false }) {
           </div>
           <div className="flex flex-col gap-2">
             {profile.joined_projects.map((p) => (
-              <a key={p.id} href={"/projects/" + p.id} className="border border-card-border rounded-xl px-4 py-3 text-sm text-navy bg-card shadow-sm hover:shadow-md transition-shadow flex items-center justify-between">
+              <a key={p.id} href={"/projects/" + p.id} className="border border-card-border rounded-xl px-4 py-3 text-sm text-navy bg-white shadow-sm hover:shadow-md transition-shadow flex items-center justify-between">
                 <span>{p.title}</span>
                 <div className="flex items-center gap-3 shrink-0">
                   {p.avg_rating != null && (
