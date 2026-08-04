@@ -10,6 +10,7 @@ import { getProjectTypeMeta } from "@/lib/projectTypeMeta";
 import { authFetch } from "@/lib/authFetch";
 import CompleteProjectModal from "@/components/CompleteProjectModal";
 import RateTeammateCard from "@/components/RateTeammateCard";
+import FloatingTechLogosFixed from "@/components/FloatingTechLogosFixed";
 
 export default function ProjectDetail() {
   const { id } = useParams();
@@ -179,6 +180,7 @@ export default function ProjectDetail() {
 
   return (
     <div className="min-h-screen bg-white px-6 py-12">
+      <FloatingTechLogosFixed />
       <div className="max-w-2xl mx-auto">
         <ScrollReveal>
           <div className="flex items-start justify-between mb-4">
@@ -213,7 +215,7 @@ export default function ProjectDetail() {
           )}
 
           {project.status === "completed" && project.completion_summary && (
-            <div className="border border-slate-200 rounded-xl p-5 bg-surface mb-6">
+            <div className="border border-card-border rounded-xl p-5 bg-card mb-6">
               <p className="text-sm font-semibold text-navy mb-2">📝 Project summary</p>
               <p className="text-sm text-secondary whitespace-pre-wrap">{project.completion_summary}</p>
             </div>
@@ -251,7 +253,7 @@ export default function ProjectDetail() {
           <div className="flex flex-col gap-3">
             {positions.map((position, i) => (
               <ScrollReveal key={position.id} delay={(i % 4) * 80}>
-                <div className="border border-slate-200 rounded-xl p-5 bg-white shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 flex items-center justify-between">
+                <div className="border border-card-border rounded-xl p-5 bg-card shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 flex items-center justify-between">
                   <div>
                     <p className="font-medium text-navy">{position.role_name}</p>
                     {position.description && (
@@ -310,7 +312,7 @@ export default function ProjectDetail() {
 
             <div className="flex flex-col gap-3 mb-4">
               {comments.map((comment) => (
-                <div key={comment.id} className="border border-slate-200 rounded-xl p-4 bg-white shadow-sm">
+                <div key={comment.id} className="border border-card-border rounded-xl p-4 bg-card shadow-sm">
                   <div className="flex items-center gap-3 mb-2">
                     <div className="w-8 h-8 rounded-full bg-blue-600/10 text-blue-600 flex items-center justify-center text-xs font-semibold shrink-0">
                       {(comment.author_name || "?")[0].toUpperCase()}

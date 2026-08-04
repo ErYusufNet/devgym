@@ -4,6 +4,7 @@ import { useState } from "react";
 import ScrollReveal from "@/components/ScrollReveal";
 import IconBadge from "@/components/IconBadge";
 import { IconLogin } from "@/components/icons/TablerIcons";
+import FloatingTechLogosFixed from "@/components/FloatingTechLogosFixed";
 
 export default function ForgotPassword() {
   const [email, setEmail] = useState("");
@@ -38,6 +39,7 @@ export default function ForgotPassword() {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-white px-6 py-12">
+      <FloatingTechLogosFixed />
       <ScrollReveal className="w-full max-w-sm">
         <div className="flex justify-center mb-4">
           <IconBadge icon={IconLogin} color="blue" />
@@ -45,7 +47,7 @@ export default function ForgotPassword() {
         <h1 className="text-3xl font-semibold text-navy mb-6 text-center">Reset your password</h1>
 
         {sent ? (
-          <div className="border border-slate-200 rounded-xl shadow-sm bg-white p-6 text-center">
+          <div className="border border-card-border rounded-xl shadow-sm bg-card p-6 text-center">
             <p className="text-navy">
               If this email is registered, a password reset link has been sent.
             </p>
@@ -53,7 +55,7 @@ export default function ForgotPassword() {
         ) : (
           <form
             onSubmit={handleSubmit}
-            className="flex flex-col gap-4 border border-slate-200 rounded-xl shadow-sm bg-white p-6"
+            className="flex flex-col gap-4 border border-card-border rounded-xl shadow-sm bg-card p-6"
           >
             <p className="text-sm text-secondary">
               Enter your email and we&apos;ll send you a link to reset your password.

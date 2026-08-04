@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import ScrollReveal from "@/components/ScrollReveal";
 import IconBadge from "@/components/IconBadge";
 import HealthBadge from "@/components/HealthBadge";
+import FloatingTechLogosFixed from "@/components/FloatingTechLogosFixed";
 import { getProjectTypeMeta } from "@/lib/projectTypeMeta";
 import { POSITION_ROLES } from "@/lib/roles";
 
@@ -54,6 +55,7 @@ export default function Discover() {
 
   return (
     <div className="min-h-screen bg-white px-6 py-12">
+      <FloatingTechLogosFixed />
       <div className="max-w-2xl mx-auto">
         <ScrollReveal className="mb-10">
           <h1 className="text-3xl font-semibold text-navy mb-2">Discover projects</h1>
@@ -61,7 +63,7 @@ export default function Discover() {
         </ScrollReveal>
 
         <ScrollReveal className="mb-8">
-          <div className="border border-slate-200 rounded-xl p-5 bg-white shadow-sm grid grid-cols-2 sm:grid-cols-3 gap-4">
+          <div className="border border-card-border rounded-xl p-5 bg-card shadow-sm grid grid-cols-2 sm:grid-cols-3 gap-4">
             <div className="flex flex-col gap-1">
               <label className="text-xs text-secondary">Role</label>
               <select
@@ -147,7 +149,7 @@ export default function Discover() {
             const meta = getProjectTypeMeta(project.project_type);
             return (
               <ScrollReveal key={project.id} delay={(i % 4) * 80}>
-                <div className="border border-slate-200 rounded-xl p-6 bg-white shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200">
+                <div className="border border-card-border rounded-xl p-6 bg-card shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200">
                   <div className="flex items-start justify-between mb-4">
                     <IconBadge icon={meta.icon} color={meta.color} />
                     {project.project_type && (

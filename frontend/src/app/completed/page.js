@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import ScrollReveal from "@/components/ScrollReveal";
 import IconBadge from "@/components/IconBadge";
+import FloatingTechLogosFixed from "@/components/FloatingTechLogosFixed";
 import { getProjectTypeMeta } from "@/lib/projectTypeMeta";
 
 export default function Completed() {
@@ -28,6 +29,7 @@ export default function Completed() {
 
   return (
     <div className="min-h-screen bg-white px-6 py-12">
+      <FloatingTechLogosFixed />
       <div className="max-w-2xl mx-auto">
         <ScrollReveal className="mb-10">
           <h1 className="text-3xl font-semibold text-navy mb-2">Completed projects</h1>
@@ -42,7 +44,7 @@ export default function Completed() {
             const meta = getProjectTypeMeta(project.project_type);
             return (
               <ScrollReveal key={project.id} delay={(i % 4) * 80}>
-                <div className="border border-slate-200 rounded-xl p-6 bg-white shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200">
+                <div className="border border-card-border rounded-xl p-6 bg-card shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200">
                   <div className="flex items-start justify-between mb-4">
                     <IconBadge icon={meta.icon} color={meta.color} />
                     <span className="text-xs px-2 py-1 rounded-full bg-green-600/10 text-green-600 font-medium">

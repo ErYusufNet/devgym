@@ -7,6 +7,7 @@ import IconBadge from "@/components/IconBadge";
 import { IconRocket, IconUsers } from "@/components/icons/TablerIcons";
 import { authFetch } from "@/lib/authFetch";
 import { POSITION_ROLES } from "@/lib/roles";
+import FloatingTechLogosFixed from "@/components/FloatingTechLogosFixed";
 
 const PROJECT_TYPES = ["web", "mobile", "saas", "desktop", "api", "game", "testing"];
 
@@ -96,6 +97,7 @@ export default function CreateProject() {
 
   return (
     <div className="min-h-screen bg-white px-6 py-12">
+      <FloatingTechLogosFixed />
       <div className="max-w-lg mx-auto">
         <ScrollReveal className="mb-8">
           <IconBadge icon={IconRocket} color="blue" />
@@ -105,7 +107,7 @@ export default function CreateProject() {
 
         <form
           onSubmit={handleSubmit}
-          className="flex flex-col gap-4 border border-slate-200 rounded-xl shadow-sm bg-white p-6 sm:p-8"
+          className="flex flex-col gap-4 border border-card-border rounded-xl shadow-sm bg-card p-6 sm:p-8"
         >
           <input
             type="text"

@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import ScrollReveal from "@/components/ScrollReveal";
 import { StarRatingDisplay } from "@/components/StarRating";
+import FloatingTechLogosFixed from "@/components/FloatingTechLogosFixed";
 import { POSITION_ROLES } from "@/lib/roles";
 
 const EXPERIENCE_LEVELS = ["student", "junior", "mid", "senior"];
@@ -50,6 +51,7 @@ export default function Talent() {
 
   return (
     <div className="min-h-screen bg-white px-6 py-12">
+      <FloatingTechLogosFixed />
       <div className="max-w-2xl mx-auto">
         <ScrollReveal className="mb-10">
           <h1 className="text-3xl font-semibold text-navy mb-2">Find talent</h1>
@@ -57,7 +59,7 @@ export default function Talent() {
         </ScrollReveal>
 
         <ScrollReveal className="mb-8">
-          <div className="border border-slate-200 rounded-xl p-5 bg-white shadow-sm grid grid-cols-2 sm:grid-cols-3 gap-4">
+          <div className="border border-card-border rounded-xl p-5 bg-card shadow-sm grid grid-cols-2 sm:grid-cols-3 gap-4">
             <div className="flex flex-col gap-1">
               <label className="text-xs text-secondary">Skills</label>
               <input
@@ -130,7 +132,7 @@ export default function Talent() {
             <ScrollReveal key={candidate.id} delay={(i % 4) * 80}>
               <a
                 href={`/profile/${candidate.id}`}
-                className="block border border-slate-200 rounded-xl p-6 bg-white shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200"
+                className="block border border-card-border rounded-xl p-6 bg-card shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200"
               >
                 <div className="flex items-start justify-between gap-4 mb-3">
                   <div className="flex items-center gap-3">

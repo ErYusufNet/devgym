@@ -14,6 +14,8 @@
   --color-secondary: #5c6b82;
   --color-surface: #f8fafc;
   --color-gold: #c9a65c;
+  --color-card: #eff6ff;
+  --color-card-border: #dbeafe;
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }

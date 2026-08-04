@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { authFetch } from "@/lib/authFetch";
 import { POSITION_ROLES } from "@/lib/roles";
+import FloatingTechLogosFixed from "@/components/FloatingTechLogosFixed";
 
 // Mirrors backend calculate_experience_level() — used only to preview the derived
 // level here; the backend is the source of truth and recomputes it on save.
@@ -113,6 +114,7 @@ export default function EditProfile() {
 
   return (
     <div className="min-h-screen bg-white px-6 py-12">
+      <FloatingTechLogosFixed />
       <div className="max-w-lg mx-auto">
         <h1 className="text-3xl font-semibold text-navy mb-8">Edit profile</h1>
 

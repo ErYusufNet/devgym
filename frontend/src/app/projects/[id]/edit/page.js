@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { authFetch } from "@/lib/authFetch";
 import { POSITION_ROLES } from "@/lib/roles";
+import FloatingTechLogosFixed from "@/components/FloatingTechLogosFixed";
 
 const PROJECT_TYPES = ["web", "mobile", "saas", "desktop", "api", "game", "testing"];
 
@@ -151,6 +152,7 @@ export default function EditProject() {
 
   return (
     <div className="min-h-screen bg-white px-6 py-12">
+      <FloatingTechLogosFixed />
       <div className="max-w-lg mx-auto">
         <h1 className="text-3xl font-semibold text-navy mb-8">Edit project</h1>
 
@@ -229,7 +231,7 @@ export default function EditProject() {
 
             <div className="flex flex-col gap-2 mb-3">
               {positions.map((position) => (
-                <div key={position.id} className="flex items-center justify-between border border-slate-200 rounded-lg px-3 py-2">
+                <div key={position.id} className="flex items-center justify-between border border-card-border rounded-lg px-3 py-2 bg-card">
                   <div>
                     <p className="text-sm font-medium text-navy">{position.role_name}</p>
                     {position.description && (

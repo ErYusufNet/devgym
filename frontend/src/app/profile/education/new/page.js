@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import FloatingTechLogosFixed from "@/components/FloatingTechLogosFixed";
 
 export default function AddEducation() {
   const router = useRouter();
@@ -54,6 +55,7 @@ export default function AddEducation() {
 
   return (
     <div className="min-h-screen bg-white px-6 py-12">
+      <FloatingTechLogosFixed />
       <div className="max-w-lg mx-auto">
         <h1 className="text-3xl font-semibold text-navy mb-8">Add education</h1>
 

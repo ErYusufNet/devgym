@@ -20,7 +20,7 @@ export default function ReputationSummary({ reputation, feedback }) {
         <h2 className="text-base font-semibold text-navy">Reputation</h2>
       </div>
 
-      <div className="border border-slate-200 rounded-xl p-5 bg-white shadow-sm">
+      <div className="border border-card-border rounded-xl p-5 bg-card shadow-sm">
         <div className="flex items-center gap-3 mb-4">
           <StarRatingDisplay rating={reputation.avg_overall} size="w-5 h-5" />
           <span className="text-lg font-semibold text-navy">{reputation.avg_overall}</span>
@@ -45,7 +45,7 @@ export default function ReputationSummary({ reputation, feedback }) {
         </div>
 
         {recentComments.length > 0 && (
-          <div className="flex flex-col gap-3 pt-4 border-t border-slate-200">
+          <div className="flex flex-col gap-3 pt-4 border-t border-card-border">
             {recentComments.map((c) => (
               <div key={c.id}>
                 <p className="text-sm text-secondary">&quot;{c.comment}&quot;</p>

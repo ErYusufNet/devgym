@@ -32,7 +32,7 @@ export default function RateTeammateCard({ teammate, onSubmit }) {
   }
 
   return (
-    <div className="border border-slate-200 rounded-xl p-5 bg-white shadow-sm">
+    <div className="border border-card-border rounded-xl p-5 bg-card shadow-sm">
       <div className="flex items-center gap-3 mb-4">
         <div className="w-8 h-8 rounded-full bg-blue-600/10 text-blue-600 flex items-center justify-center text-xs font-semibold shrink-0">
           {(teammate.full_name || teammate.email || "?")[0].toUpperCase()}

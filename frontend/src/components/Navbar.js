@@ -16,7 +16,7 @@ export default function Navbar() {
   }
 
   return (
-    <nav className="border-b border-slate-200 bg-white">
+    <nav className="sticky top-0 z-40 border-b border-slate-200 bg-white">
       <div className="flex items-center justify-between max-w-5xl mx-auto px-6 py-4 w-full">
         <a href="/" className="text-lg font-semibold text-navy tracking-tight">
           Ernord

@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import ScrollReveal from "@/components/ScrollReveal";
 import IconBadge from "@/components/IconBadge";
 import { IconShieldCheck } from "@/components/icons/TablerIcons";
+import FloatingTechLogosFixed from "@/components/FloatingTechLogosFixed";
 
 function ResetPasswordForm() {
   const router = useRouter();
@@ -60,13 +61,13 @@ function ResetPasswordForm() {
       <h1 className="text-3xl font-semibold text-navy mb-6 text-center">Choose a new password</h1>
 
       {done ? (
-        <div className="border border-slate-200 rounded-xl shadow-sm bg-white p-6 text-center">
+        <div className="border border-card-border rounded-xl shadow-sm bg-card p-6 text-center">
           <p className="text-navy">Password has been reset. Redirecting to log in...</p>
         </div>
       ) : (
         <form
           onSubmit={handleSubmit}
-          className="flex flex-col gap-4 border border-slate-200 rounded-xl shadow-sm bg-white p-6"
+          className="flex flex-col gap-4 border border-card-border rounded-xl shadow-sm bg-card p-6"
         >
           {!token && (
             <p className="text-sm text-red-500">
@@ -112,6 +113,7 @@ function ResetPasswordForm() {
 export default function ResetPassword() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-white px-6 py-12">
+      <FloatingTechLogosFixed />
       <Suspense fallback={null}>
         <ResetPasswordForm />
       </Suspense>

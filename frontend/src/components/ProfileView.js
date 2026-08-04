@@ -6,6 +6,7 @@ import ScrollReveal from "@/components/ScrollReveal";
 import IconBadge from "@/components/IconBadge";
 import CompletionRateRing from "@/components/CompletionRateRing";
 import ReputationSummary from "@/components/ReputationSummary";
+import FloatingTechLogosFixed from "@/components/FloatingTechLogosFixed";
 import { StarRatingDisplay } from "@/components/StarRating";
 import { IconBriefcase, IconSchool, IconCode, IconFolder } from "@/components/icons/TablerIcons";
 
@@ -77,6 +78,7 @@ export default function ProfileView({ userId: userIdProp, editable = false }) {
 
   return (
     <div className="min-h-screen bg-white px-6 py-12">
+      <FloatingTechLogosFixed />
       <div className="max-w-2xl mx-auto">
         <ScrollReveal className="flex items-center justify-between gap-4 mb-8">
           <div className="flex items-center gap-4">
@@ -152,7 +154,7 @@ export default function ProfileView({ userId: userIdProp, editable = false }) {
           </div>
           <div className="flex flex-col gap-3">
             {workExperience.map((item) => (
-              <div key={item.id} className="border border-slate-200 rounded-xl p-5 bg-white shadow-sm hover:shadow-md transition-shadow flex items-start gap-4">
+              <div key={item.id} className="border border-card-border rounded-xl p-5 bg-card shadow-sm hover:shadow-md transition-shadow flex items-start gap-4">
                 <IconBadge icon={IconBriefcase} color="blue" size="sm" />
                 <div className="flex-1 flex items-start justify-between gap-3">
                   <div>
@@ -194,7 +196,7 @@ export default function ProfileView({ userId: userIdProp, editable = false }) {
           </div>
           <div className="flex flex-col gap-3">
             {education.map((item) => (
-              <div key={item.id} className="border border-slate-200 rounded-xl p-5 bg-white shadow-sm hover:shadow-md transition-shadow flex items-start gap-4">
+              <div key={item.id} className="border border-card-border rounded-xl p-5 bg-card shadow-sm hover:shadow-md transition-shadow flex items-start gap-4">
                 <IconBadge icon={IconSchool} color="purple" size="sm" />
                 <div className="flex-1 flex items-start justify-between gap-3">
                   <div>
@@ -230,7 +232,7 @@ export default function ProfileView({ userId: userIdProp, editable = false }) {
           </div>
           <div className="flex flex-col gap-2">
             {profile.owned_projects.map((p) => (
-              <a key={p.id} href={"/projects/" + p.id} className="border border-slate-200 rounded-xl px-4 py-3 text-sm text-navy shadow-sm hover:shadow-md transition-shadow flex items-center justify-between">
+              <a key={p.id} href={"/projects/" + p.id} className="border border-card-border rounded-xl px-4 py-3 text-sm text-navy bg-card shadow-sm hover:shadow-md transition-shadow flex items-center justify-between">
                 <span>{p.title}</span>
                 <span className="text-xs text-secondary capitalize">{p.status}</span>
               </a>
@@ -255,7 +257,7 @@ export default function ProfileView({ userId: userIdProp, editable = false }) {
           </div>
           <div className="flex flex-col gap-2">
             {profile.joined_projects.map((p) => (
-              <a key={p.id} href={"/projects/" + p.id} className="border border-slate-200 rounded-xl px-4 py-3 text-sm text-navy shadow-sm hover:shadow-md transition-shadow flex items-center justify-between">
+              <a key={p.id} href={"/projects/" + p.id} className="border border-card-border rounded-xl px-4 py-3 text-sm text-navy bg-card shadow-sm hover:shadow-md transition-shadow flex items-center justify-between">
                 <span>{p.title}</span>
                 <div className="flex items-center gap-3 shrink-0">
                   {p.avg_rating != null && (

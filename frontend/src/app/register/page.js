@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import ScrollReveal from "@/components/ScrollReveal";
 import IconBadge from "@/components/IconBadge";
 import { IconUserPlus } from "@/components/icons/TablerIcons";
+import FloatingTechLogosFixed from "@/components/FloatingTechLogosFixed";
 
 export default function Register() {
   const router = useRouter();
@@ -47,6 +48,7 @@ export default function Register() {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-white px-6 py-12">
+      <FloatingTechLogosFixed />
       <ScrollReveal className="w-full max-w-sm">
         <div className="flex justify-center mb-4">
           <IconBadge icon={IconUserPlus} color="purple" />
@@ -55,7 +57,7 @@ export default function Register() {
 
         <form
           onSubmit={handleSubmit}
-          className="flex flex-col gap-4 border border-slate-200 rounded-xl shadow-sm bg-white p-6"
+          className="flex flex-col gap-4 border border-card-border rounded-xl shadow-sm bg-card p-6"
         >
           <input
             type="text"

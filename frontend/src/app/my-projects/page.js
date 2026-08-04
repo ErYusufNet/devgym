@@ -7,6 +7,7 @@ import { IconPencil, IconTrash } from "@/components/icons/TablerIcons";
 import { getProjectTypeMeta } from "@/lib/projectTypeMeta";
 import { authFetch } from "@/lib/authFetch";
 import CompleteProjectModal from "@/components/CompleteProjectModal";
+import FloatingTechLogosFixed from "@/components/FloatingTechLogosFixed";
 
 export default function MyProjects() {
   const [projects, setProjects] = useState([]);
@@ -136,6 +137,7 @@ export default function MyProjects() {
 
   return (
     <div className="min-h-screen bg-white px-6 py-12">
+      <FloatingTechLogosFixed />
       <div className="max-w-2xl mx-auto">
         <ScrollReveal className="flex items-center gap-3 mb-8">
           <h1 className="text-3xl font-semibold text-navy">My projects</h1>
@@ -158,7 +160,7 @@ export default function MyProjects() {
             const meta = getProjectTypeMeta(project.project_type);
             return (
               <ScrollReveal key={project.id} delay={(i % 4) * 80}>
-                <div className="relative border border-slate-200 rounded-xl p-6 bg-white shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200">
+                <div className="relative border border-card-border rounded-xl p-6 bg-card shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200">
                   <div className="absolute top-4 right-4 flex gap-1">
                     <a
                       href={`/projects/${project.id}/edit`}
@@ -199,7 +201,7 @@ export default function MyProjects() {
 
                   <div className="flex flex-col gap-2">
                     {applications.map((app) => (
-                      <div key={app.id} className="flex items-center justify-between border border-slate-200 rounded-lg p-3">
+                      <div key={app.id} className="flex items-center justify-between border border-card-border rounded-lg p-3">
                         <div className="flex items-center gap-3">
                           <div className="w-8 h-8 rounded-full bg-blue-600/10 text-blue-600 flex items-center justify-center text-xs font-semibold shrink-0">
                             {(app.applicant_name || app.applicant_email || "?")[0].toUpperCase()}
