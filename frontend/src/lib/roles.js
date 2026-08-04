@@ -1,0 +1,26 @@
+// Shared list of position roles. Used by the project create/edit forms (to populate
+// the role dropdown for new positions) and the Discover filter panel (to filter by role),
+// so both stay in sync from a single source.
+export const POSITION_ROLES = [
+  "Frontend Developer",
+  "Backend Developer",
+  "Full Stack Developer",
+  "Mobile Developer (iOS)",
+  "Mobile Developer (Android)",
+  "UI/UX Designer",
+  "Product Owner",
+  "Scrum Master",
+  "DevOps Engineer",
+  "Data Engineer",
+  "Data Scientist",
+  "ML/AI Engineer",
+  "QA Engineer (Manual)",
+  "QA Automation Engineer",
+  "Database Administrator",
+  "Cloud Engineer",
+  "Security Engineer",
+  "Game Developer",
+  "Embedded Systems Engineer",
+  "Business Analyst",
+  "Technical Writer",
+];

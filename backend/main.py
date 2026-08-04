@@ -387,12 +387,6 @@ def list_positions(project_id: str, db: Session = Depends(get_db)):
     return db.query(models.Position).filter(models.Position.project_id == project_id).all()
 
 
-@app.get("/positions/roles", response_model=list[str])
-def list_position_roles(db: Session = Depends(get_db)):
-    rows = db.query(models.Position.role_name).distinct().all()
-    return sorted({row[0] for row in rows if row[0]})
-
-
 @app.delete("/projects/{project_id}/positions/{position_id}")
 def delete_position(
     project_id: str,

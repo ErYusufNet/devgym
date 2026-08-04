@@ -6,6 +6,7 @@ import ScrollReveal from "@/components/ScrollReveal";
 import IconBadge from "@/components/IconBadge";
 import { IconRocket, IconUsers } from "@/components/icons/TablerIcons";
 import { authFetch } from "@/lib/authFetch";
+import { POSITION_ROLES } from "@/lib/roles";
 
 const PROJECT_TYPES = ["web", "mobile", "saas", "desktop", "api", "game", "testing"];
 
@@ -184,13 +185,16 @@ export default function CreateProject() {
             <div className="flex flex-col gap-3">
               {positions.map((position, index) => (
                 <div key={index} className="flex gap-2">
-                  <input
-                    type="text"
-                    placeholder="Role (e.g. Frontend Developer)"
+                  <select
                     value={position.role_name}
                     onChange={(e) => updatePosition(index, "role_name", e.target.value)}
-                    className="flex-1 px-3 py-2 border border-slate-300 rounded-lg bg-white text-navy placeholder:text-secondary focus:outline-none focus:border-accent text-sm"
-                  />
+                    className="flex-1 px-3 py-2 border border-slate-300 rounded-lg bg-white text-navy focus:outline-none focus:border-accent text-sm"
+                  >
+                    <option value="">Select a role</option>
+                    {POSITION_ROLES.map((role) => (
+                      <option key={role} value={role}>{role}</option>
+                    ))}
+                  </select>
                   <input
                     type="text"
                     placeholder="Description (optional)"

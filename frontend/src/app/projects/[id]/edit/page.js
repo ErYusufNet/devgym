@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { authFetch } from "@/lib/authFetch";
+import { POSITION_ROLES } from "@/lib/roles";
 
 const PROJECT_TYPES = ["web", "mobile", "saas", "desktop", "api", "game", "testing"];
 
@@ -250,13 +251,16 @@ export default function EditProject() {
             </div>
 
             <div className="flex gap-2">
-              <input
-                type="text"
-                placeholder="Role (e.g. Backend Developer)"
+              <select
                 value={newRoleName}
                 onChange={(e) => setNewRoleName(e.target.value)}
-                className="flex-1 px-3 py-2 border border-slate-300 rounded-lg bg-white text-navy placeholder:text-secondary focus:outline-none focus:border-accent text-sm"
-              />
+                className="flex-1 px-3 py-2 border border-slate-300 rounded-lg bg-white text-navy focus:outline-none focus:border-accent text-sm"
+              >
+                <option value="">Select a role</option>
+                {POSITION_ROLES.map((role) => (
+                  <option key={role} value={role}>{role}</option>
+                ))}
+              </select>
               <input
                 type="text"
                 placeholder="Description (optional)"

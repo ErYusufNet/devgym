@@ -4,12 +4,12 @@ import { useCallback, useEffect, useState } from "react";
 import ScrollReveal from "@/components/ScrollReveal";
 import IconBadge from "@/components/IconBadge";
 import { getProjectTypeMeta } from "@/lib/projectTypeMeta";
+import { POSITION_ROLES } from "@/lib/roles";
 
 const PROJECT_TYPES = ["web", "mobile", "saas", "desktop", "api", "game", "testing"];
 
 export default function Discover() {
   const [projects, setProjects] = useState([]);
-  const [roles, setRoles] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
@@ -19,13 +19,6 @@ export default function Discover() {
   const [maxDuration, setMaxDuration] = useState("");
   const [maxHours, setMaxHours] = useState("");
   const [openOnly, setOpenOnly] = useState(true);
-
-  useEffect(() => {
-    fetch("http://127.0.0.1:8000/positions/roles")
-      .then((res) => (res.ok ? res.json() : []))
-      .then(setRoles)
-      .catch(() => {});
-  }, []);
 
   const fetchProjects = useCallback(async () => {
     setLoading(true);
@@ -76,7 +69,7 @@ export default function Discover() {
                 className="px-3 py-2 border border-slate-300 rounded-lg bg-white text-navy text-sm focus:outline-none focus:border-accent"
               >
                 <option value="">Any role</option>
-                {roles.map((r) => (
+                {POSITION_ROLES.map((r) => (
                   <option key={r} value={r}>{r}</option>
                 ))}
               </select>
