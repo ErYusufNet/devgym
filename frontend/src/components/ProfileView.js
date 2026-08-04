@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import ActivityHeatmap from "@/components/ActivityHeatmap";
 import ScrollReveal from "@/components/ScrollReveal";
 import IconBadge from "@/components/IconBadge";
+import CompletionRateRing from "@/components/CompletionRateRing";
 import { IconBriefcase, IconSchool, IconCode, IconFolder } from "@/components/icons/TablerIcons";
 
 export default function ProfileView({ userId: userIdProp, editable = false }) {
@@ -233,9 +234,16 @@ export default function ProfileView({ userId: userIdProp, editable = false }) {
         </ScrollReveal>
 
         <ScrollReveal>
-          <div className="flex items-center gap-3 mb-3">
-            <IconBadge icon={IconFolder} color="purple" size="sm" />
-            <h2 className="text-base font-semibold text-navy">Projects joined ({profile.joined_projects.length})</h2>
+          <div className="flex items-center justify-between gap-3 mb-3">
+            <div className="flex items-center gap-3">
+              <IconBadge icon={IconFolder} color="purple" size="sm" />
+              <h2 className="text-base font-semibold text-navy">Projects joined ({profile.joined_projects.length})</h2>
+            </div>
+            <CompletionRateRing
+              completed={profile.joined_completed_count}
+              total={profile.joined_total_count}
+              rate={profile.completion_rate}
+            />
           </div>
           <div className="flex flex-col gap-2">
             {profile.joined_projects.map((p) => (

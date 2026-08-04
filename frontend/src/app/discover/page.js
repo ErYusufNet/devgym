@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import ScrollReveal from "@/components/ScrollReveal";
 import IconBadge from "@/components/IconBadge";
+import HealthBadge from "@/components/HealthBadge";
 import { getProjectTypeMeta } from "@/lib/projectTypeMeta";
 import { POSITION_ROLES } from "@/lib/roles";
 
@@ -156,7 +157,10 @@ export default function Discover() {
                     )}
                   </div>
 
-                  <h2 className="text-lg font-semibold text-navy mb-2">{project.title}</h2>
+                  <div className="flex items-center gap-2 mb-2">
+                    <h2 className="text-lg font-semibold text-navy">{project.title}</h2>
+                    <HealthBadge health={project.health} />
+                  </div>
                   <p className="text-sm text-secondary mb-4">{project.description}</p>
 
                   <div className="flex flex-wrap gap-2 mb-4">

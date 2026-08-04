@@ -87,6 +87,10 @@ def get_user_profile(user_id: str, db: Session = Depends(get_db)):
     joined_project_ids = [m.project_id for m in memberships]
     joined_projects = db.query(models.Project).filter(models.Project.id.in_(joined_project_ids)).all()
 
+    joined_total_count = len(joined_projects)
+    joined_completed_count = sum(1 for p in joined_projects if p.status == models.ProjectStatus.completed)
+    completion_rate = round(joined_completed_count / joined_total_count * 100) if joined_total_count else None
+
     return {
         "id": user.id,
         "email": user.email,
@@ -103,6 +107,9 @@ def get_user_profile(user_id: str, db: Session = Depends(get_db)):
         "joined_projects": [
             {"id": p.id, "title": p.title, "status": p.status} for p in joined_projects
         ],
+        "joined_total_count": joined_total_count,
+        "joined_completed_count": joined_completed_count,
+        "completion_rate": completion_rate,
     }
 
 
@@ -227,6 +234,54 @@ def delete_education(education_id: str, db: Session = Depends(get_db)):
 
 # ---------- Projects ----------
 
+def calculate_project_health(project: models.Project, db: Session) -> str:
+    """Classify a project's momentum from its most recent activity: a newly opened
+    position, a newly submitted application, or a newly joined team member — whichever
+    is most recent. Falls back to the project's own creation date if none of those exist
+    yet, so a freshly published project reads as "active" rather than "stale"."""
+    position_ids = [
+        row[0] for row in db.query(models.Position.id).filter(models.Position.project_id == project.id).all()
+    ]
+
+    last_activity = project.created_at
+
+    latest_position = (
+        db.query(models.Position.created_at)
+        .filter(models.Position.project_id == project.id)
+        .order_by(models.Position.created_at.desc())
+        .first()
+    )
+    if latest_position and latest_position[0] > last_activity:
+        last_activity = latest_position[0]
+
+    if position_ids:
+        latest_application = (
+            db.query(models.Application.applied_at)
+            .filter(models.Application.position_id.in_(position_ids))
+            .order_by(models.Application.applied_at.desc())
+            .first()
+        )
+        if latest_application and latest_application[0] > last_activity:
+            last_activity = latest_application[0]
+
+    latest_team_join = (
+        db.query(models.TeamMember.joined_at)
+        .filter(models.TeamMember.project_id == project.id)
+        .order_by(models.TeamMember.joined_at.desc())
+        .first()
+    )
+    if latest_team_join and latest_team_join[0] > last_activity:
+        last_activity = latest_team_join[0]
+
+    days_since = (datetime.utcnow() - last_activity).days
+
+    if days_since < 7:
+        return "active"
+    if days_since <= 21:
+        return "slow"
+    return "stale"
+
+
 @app.post("/projects", response_model=schemas.ProjectOut)
 def create_project(
     project: schemas.ProjectCreate,
@@ -287,6 +342,9 @@ def list_projects(
         tech_lower = tech.lower()
         projects = [p for p in projects if any(tech_lower in t.lower() for t in (p.tech_stack or []))]
 
+    for p in projects:
+        p.health = calculate_project_health(p, db)
+
     return projects
 
 
@@ -295,6 +353,7 @@ def get_project(project_id: str, db: Session = Depends(get_db)):
     project = db.query(models.Project).filter(models.Project.id == project_id).first()
     if not project:
         raise HTTPException(status_code=404, detail="Project not found")
+    project.health = calculate_project_health(project, db)
     return project
 
 
@@ -348,6 +407,7 @@ def delete_project(
 @app.put("/projects/{project_id}/complete", response_model=schemas.ProjectOut)
 def complete_project(
     project_id: str,
+    payload: Optional[schemas.ProjectCompleteRequest] = None,
     current_user: models.User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
@@ -358,6 +418,9 @@ def complete_project(
         raise HTTPException(status_code=403, detail="Only the project owner can mark this project as completed")
 
     project.status = models.ProjectStatus.completed
+    if payload and payload.summary:
+        project.completion_summary = payload.summary
+
     db.commit()
     db.refresh(project)
     return project

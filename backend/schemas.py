@@ -81,9 +81,15 @@ class ProjectOut(BaseModel):
     weekly_hours: Optional[int]
     timezone: Optional[str]
     created_at: datetime
+    health: Optional[str] = None
+    completion_summary: Optional[str] = None
 
     class Config:
         from_attributes = True
+
+
+class ProjectCompleteRequest(BaseModel):
+    summary: Optional[str] = None
 
 
 # ---------- Position ----------

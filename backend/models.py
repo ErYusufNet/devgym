@@ -87,6 +87,7 @@ class Project(Base):
     duration_weeks = Column(Integer)
     weekly_hours = Column(Integer)
     timezone = Column(String)
+    completion_summary = Column(Text, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
 
     owner = relationship("User", back_populates="projects")

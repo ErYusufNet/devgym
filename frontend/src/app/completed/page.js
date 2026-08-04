@@ -59,6 +59,13 @@ export default function Completed() {
                     ))}
                   </div>
 
+                  {project.completion_summary && (
+                    <div className="border border-slate-200 rounded-lg p-4 bg-surface mb-4">
+                      <p className="text-xs font-semibold text-navy mb-1">📝 Project summary</p>
+                      <p className="text-sm text-secondary whitespace-pre-wrap">{project.completion_summary}</p>
+                    </div>
+                  )}
+
                   <a href={`/projects/${project.id}`} className="text-sm font-medium text-accent hover:text-accent-hover">View project →</a>
                 </div>
               </ScrollReveal>

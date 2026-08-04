@@ -6,6 +6,7 @@ import IconBadge from "@/components/IconBadge";
 import { IconPencil, IconTrash } from "@/components/icons/TablerIcons";
 import { getProjectTypeMeta } from "@/lib/projectTypeMeta";
 import { authFetch } from "@/lib/authFetch";
+import CompleteProjectModal from "@/components/CompleteProjectModal";
 
 export default function MyProjects() {
   const [projects, setProjects] = useState([]);
@@ -15,6 +16,8 @@ export default function MyProjects() {
   const [actionMessage, setActionMessage] = useState("");
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [deleting, setDeleting] = useState(false);
+  const [completeTarget, setCompleteTarget] = useState(null);
+  const [completing, setCompleting] = useState(false);
 
   useEffect(() => {
     loadMyProjects();
@@ -81,20 +84,28 @@ export default function MyProjects() {
     }
   }
 
-  async function handleComplete(projectId) {
+  async function handleComplete(summary) {
+    if (!completeTarget) return;
+    setCompleting(true);
     setActionMessage("");
+
     try {
-      const res = await authFetch(`http://127.0.0.1:8000/projects/${projectId}/complete`, {
+      const res = await authFetch(`http://127.0.0.1:8000/projects/${completeTarget.id}/complete`, {
         method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ summary: summary.trim() || null }),
       });
       if (!res.ok) {
         const data = await res.json();
         throw new Error(data.detail || "Could not mark project as completed");
       }
       setActionMessage("Project marked as completed!");
+      setCompleteTarget(null);
       loadMyProjects();
     } catch (err) {
       setActionMessage(err.message);
+    } finally {
+      setCompleting(false);
     }
   }
 
@@ -178,7 +189,7 @@ export default function MyProjects() {
                       </span>
                     ) : (
                       <button
-                        onClick={() => handleComplete(project.id)}
+                        onClick={() => setCompleteTarget(project)}
                         className="px-2.5 py-1 rounded-full border border-slate-300 text-secondary hover:text-navy hover:bg-surface text-xs font-medium"
                       >
                         Mark as completed
@@ -264,6 +275,14 @@ export default function MyProjects() {
             </div>
           </div>
         </div>
+      )}
+
+      {completeTarget && (
+        <CompleteProjectModal
+          onCancel={() => !completing && setCompleteTarget(null)}
+          onConfirm={handleComplete}
+          submitting={completing}
+        />
       )}
     </div>
   );

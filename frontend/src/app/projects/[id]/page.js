@@ -4,9 +4,11 @@ import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import ScrollReveal from "@/components/ScrollReveal";
 import IconBadge from "@/components/IconBadge";
+import HealthBadge from "@/components/HealthBadge";
 import { IconUsers, IconHeartHandshake } from "@/components/icons/TablerIcons";
 import { getProjectTypeMeta } from "@/lib/projectTypeMeta";
 import { authFetch } from "@/lib/authFetch";
+import CompleteProjectModal from "@/components/CompleteProjectModal";
 
 export default function ProjectDetail() {
   const { id } = useParams();
@@ -17,6 +19,7 @@ export default function ProjectDetail() {
   const [error, setError] = useState("");
   const [applyingTo, setApplyingTo] = useState(null);
   const [message, setMessage] = useState("");
+  const [showCompleteModal, setShowCompleteModal] = useState(false);
   const [completing, setCompleting] = useState(false);
   const [commentText, setCommentText] = useState("");
   const [postingComment, setPostingComment] = useState(false);
@@ -57,18 +60,21 @@ export default function ProjectDetail() {
     }
   }
 
-  async function handleComplete() {
+  async function handleComplete(summary) {
     setCompleting(true);
     setMessage("");
     try {
       const res = await authFetch(`http://127.0.0.1:8000/projects/${id}/complete`, {
         method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ summary: summary.trim() || null }),
       });
       if (!res.ok) {
         const data = await res.json();
         throw new Error(data.detail || "Could not mark project as completed");
       }
       await fetchData();
+      setShowCompleteModal(false);
       setMessage("Project marked as completed!");
     } catch (err) {
       setMessage(err.message);
@@ -166,17 +172,26 @@ export default function ProjectDetail() {
             </div>
           </div>
 
-          <h1 className="text-3xl font-semibold text-navy mb-2">{project.title}</h1>
+          <div className="flex items-center gap-2 mb-2">
+            <h1 className="text-3xl font-semibold text-navy">{project.title}</h1>
+            <HealthBadge health={project.health} />
+          </div>
           <p className="text-secondary mb-4">{project.description}</p>
 
           {currentUserId === project.owner_id && project.status !== "completed" && (
             <button
-              onClick={handleComplete}
-              disabled={completing}
-              className="mb-4 px-3 py-1.5 rounded-lg border border-slate-300 text-sm text-navy hover:bg-surface disabled:opacity-50"
+              onClick={() => setShowCompleteModal(true)}
+              className="mb-4 px-3 py-1.5 rounded-lg border border-slate-300 text-sm text-navy hover:bg-surface"
             >
-              {completing ? "Marking as completed..." : "Mark as completed"}
+              Mark as completed
             </button>
+          )}
+
+          {project.status === "completed" && project.completion_summary && (
+            <div className="border border-slate-200 rounded-xl p-5 bg-surface mb-6">
+              <p className="text-sm font-semibold text-navy mb-2">📝 Project summary</p>
+              <p className="text-sm text-secondary whitespace-pre-wrap">{project.completion_summary}</p>
+            </div>
           )}
 
           <div className="flex flex-wrap gap-2 mb-4">
@@ -298,6 +313,14 @@ export default function ProjectDetail() {
           </ScrollReveal>
         )}
       </div>
+
+      {showCompleteModal && (
+        <CompleteProjectModal
+          onCancel={() => !completing && setShowCompleteModal(false)}
+          onConfirm={handleComplete}
+          submitting={completing}
+        />
+      )}
     </div>
   );
 }
