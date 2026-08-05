@@ -10,6 +10,7 @@ import { API_URL } from "@/lib/api";
 import { authFetch } from "@/lib/authFetch";
 
 const EXPERIENCE_LEVELS = ["student", "junior", "mid", "senior"];
+const ADMIN_EMAIL = "ernordbusiness@hotmail.com";
 
 export default function Talent() {
   const [candidates, setCandidates] = useState([]);
@@ -41,7 +42,12 @@ export default function Talent() {
         const res = await fetch(`${API_URL}/users/${userId}/profile`);
         if (!res.ok) throw new Error();
         const data = await res.json();
-        setAccessAllowed(data.account_type === "recruiter" && data.recruiter_approved === true);
+        // Admin gets Find Talent access too, for platform oversight — matches the
+        // backend's require_approved_recruiter, which lets the admin email through.
+        setAccessAllowed(
+          (data.account_type === "recruiter" && data.recruiter_approved === true) ||
+          data.email === ADMIN_EMAIL
+        );
       } catch {
         setAccessAllowed(false);
       }

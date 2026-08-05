@@ -64,7 +64,10 @@ ADMIN_EMAIL = "ernordbusiness@hotmail.com"
 
 def require_approved_recruiter(current_user: models.User) -> None:
     """Shared gate for recruiter-only features (talent search, contact requests).
-    Raises 403 unless the caller is a recruiter account that's been manually approved."""
+    Raises 403 unless the caller is a recruiter account that's been manually approved
+    — the admin account is always let through too, for platform oversight."""
+    if current_user.email == ADMIN_EMAIL:
+        return
     if current_user.account_type != models.AccountType.recruiter or not current_user.recruiter_approved:
         raise HTTPException(
             status_code=403,
@@ -146,11 +149,13 @@ def search_users(
 
     # Find Talent searches for developers specifically — without this, recruiter and
     # admin accounts (which also default to visible_to_recruiters=True) would show up
-    # alongside actual candidates.
-    query = db.query(models.User).filter(
-        models.User.account_type == models.AccountType.developer,
-        models.User.visible_to_recruiters.is_(True),
-    )
+    # alongside actual candidates. The admin account additionally sees everyone,
+    # including developers who opted out of recruiter visibility — this is platform
+    # oversight, not recruiting, so it isn't subject to that privacy toggle.
+    filters = [models.User.account_type == models.AccountType.developer]
+    if current_user.email != ADMIN_EMAIL:
+        filters.append(models.User.visible_to_recruiters.is_(True))
+    query = db.query(models.User).filter(*filters)
 
     if min_years_experience is not None:
         query = query.filter(models.User.years_of_experience >= min_years_experience)
