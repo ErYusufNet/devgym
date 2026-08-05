@@ -1,9 +1,12 @@
 from typing import Optional
 
-from fastapi import FastAPI, Depends, HTTPException, Header
+from fastapi import FastAPI, Depends, HTTPException, Header, Request
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 from datetime import datetime
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.util import get_remote_address
+from slowapi.errors import RateLimitExceeded
 
 import auth
 import discord_utils
@@ -18,6 +21,12 @@ from database import engine, get_db
 models.Base.metadata.create_all(bind=engine)
 
 app = FastAPI(title="ErNord API")
+
+# Per-IP rate limiting for the auth-adjacent endpoints most exposed to brute-force /
+# spam abuse (login, registration, password reset) — see SECURITY_AUDIT.md finding #5.
+limiter = Limiter(key_func=get_remote_address)
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 app.add_middleware(
     CORSMiddleware,
@@ -52,7 +61,8 @@ def read_root():
 # ---------- Users ----------
 
 @app.post("/users", response_model=schemas.UserOut)
-def create_user(user: schemas.UserCreate, db: Session = Depends(get_db)):
+@limiter.limit("5/hour")
+def create_user(request: Request, user: schemas.UserCreate, db: Session = Depends(get_db)):
     existing = db.query(models.User).filter(models.User.email == user.email).first()
     if existing:
         raise HTTPException(status_code=400, detail="This email is already registered")
@@ -1159,7 +1169,8 @@ def get_pending_feedback(
 # ---------- Auth ----------
 
 @app.post("/login")
-def login(email: str, password: str, db: Session = Depends(get_db)):
+@limiter.limit("10/minute")
+def login(request: Request, email: str, password: str, db: Session = Depends(get_db)):
     user = db.query(models.User).filter(models.User.email == email).first()
     if not user or not auth.verify_password(password, user.password_hash):
         raise HTTPException(status_code=401, detail="Incorrect email or password")
@@ -1169,7 +1180,8 @@ def login(email: str, password: str, db: Session = Depends(get_db)):
 
 
 @app.post("/forgot-password")
-def forgot_password(payload: schemas.ForgotPasswordRequest, db: Session = Depends(get_db)):
+@limiter.limit("5/hour")
+def forgot_password(request: Request, payload: schemas.ForgotPasswordRequest, db: Session = Depends(get_db)):
     user = db.query(models.User).filter(models.User.email == payload.email).first()
 
     # Always return the same message whether or not the email is registered,
