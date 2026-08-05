@@ -7,6 +7,7 @@ import FloatingTechLogosFixed from "@/components/FloatingTechLogosFixed";
 import { IconChevronDown } from "@/components/icons/TablerIcons";
 import { POSITION_ROLES } from "@/lib/roles";
 import { API_URL } from "@/lib/api";
+import { authFetch } from "@/lib/authFetch";
 
 const EXPERIENCE_LEVELS = ["student", "junior", "mid", "senior"];
 
@@ -22,6 +23,32 @@ export default function Talent() {
   const [experienceLevel, setExperienceLevel] = useState("");
   const [filtersOpen, setFiltersOpen] = useState(true);
 
+  // Access check: only logged-in, approved recruiter accounts get to see this page.
+  // null = still checking, true/false = resolved.
+  const [accessAllowed, setAccessAllowed] = useState(null);
+
+  const [contactStatus, setContactStatus] = useState({});
+
+  useEffect(() => {
+    async function checkAccess() {
+      const userId = localStorage.getItem("devgym_user_id");
+      const token = localStorage.getItem("devgym_token");
+      if (!userId || !token) {
+        setAccessAllowed(false);
+        return;
+      }
+      try {
+        const res = await fetch(`${API_URL}/users/${userId}/profile`);
+        if (!res.ok) throw new Error();
+        const data = await res.json();
+        setAccessAllowed(data.account_type === "recruiter" && data.recruiter_approved === true);
+      } catch {
+        setAccessAllowed(false);
+      }
+    }
+    checkAccess();
+  }, []);
+
   const fetchCandidates = useCallback(async () => {
     setLoading(true);
     setError("");
@@ -34,7 +61,7 @@ export default function Talent() {
       if (title) params.set("title", title);
       if (experienceLevel) params.set("experience_level", experienceLevel);
 
-      const res = await fetch(`${API_URL}/users/search?${params}`);
+      const res = await authFetch(`${API_URL}/users/search?${params}`);
       if (!res.ok) throw new Error("Could not load candidates");
       const data = await res.json();
       setCandidates(data);
@@ -46,11 +73,45 @@ export default function Talent() {
   }, [skills, minYears, languages, title, experienceLevel]);
 
   useEffect(() => {
+    if (accessAllowed !== true) return;
     const timeout = setTimeout(() => {
       fetchCandidates();
     }, 300);
     return () => clearTimeout(timeout);
-  }, [fetchCandidates]);
+  }, [accessAllowed, fetchCandidates]);
+
+  async function handleContact(candidateId) {
+    setContactStatus((prev) => ({ ...prev, [candidateId]: "sending" }));
+    try {
+      const res = await authFetch(`${API_URL}/users/${candidateId}/contact-request`, {
+        method: "POST",
+      });
+      if (!res.ok) throw new Error();
+      setContactStatus((prev) => ({ ...prev, [candidateId]: "sent" }));
+    } catch {
+      setContactStatus((prev) => ({ ...prev, [candidateId]: "error" }));
+    }
+  }
+
+  if (accessAllowed === null) {
+    return <p className="text-center text-secondary py-20">Loading...</p>;
+  }
+
+  if (accessAllowed === false) {
+    return (
+      <div className="min-h-screen bg-white px-6 py-12">
+        <FloatingTechLogosFixed />
+        <div className="max-w-2xl mx-auto">
+          <ScrollReveal>
+            <div className="border border-card-border rounded-xl p-8 bg-card shadow-sm text-center">
+              <h1 className="text-2xl font-semibold text-navy mb-2">Find talent</h1>
+              <p className="text-secondary">This page is only available to approved recruiter accounts.</p>
+            </div>
+          </ScrollReveal>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-white px-6 py-12">
@@ -197,12 +258,33 @@ export default function Talent() {
                 )}
 
                 {candidate.languages.length > 0 && (
-                  <div className="flex flex-wrap gap-2">
+                  <div className="flex flex-wrap gap-2 mb-3">
                     {candidate.languages.map((lang) => (
                       <span key={lang} className="text-xs px-2 py-1 rounded-full bg-violet-600/10 text-violet-600">{lang}</span>
                     ))}
                   </div>
                 )}
+
+                <div className="flex items-center gap-3 pt-1">
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      handleContact(candidate.id);
+                    }}
+                    disabled={contactStatus[candidate.id] === "sending" || contactStatus[candidate.id] === "sent"}
+                    className="px-3 py-1.5 bg-accent text-white rounded-lg text-sm font-medium hover:bg-accent-hover transition-colors duration-150 disabled:opacity-50"
+                  >
+                    {contactStatus[candidate.id] === "sending" ? "Sending..." : "Contact"}
+                  </button>
+                  {contactStatus[candidate.id] === "sent" && (
+                    <span className="text-sm text-green-600">Contact request sent!</span>
+                  )}
+                  {contactStatus[candidate.id] === "error" && (
+                    <span className="text-sm text-red-500">Could not send request.</span>
+                  )}
+                </div>
               </a>
             </ScrollReveal>
           ))}

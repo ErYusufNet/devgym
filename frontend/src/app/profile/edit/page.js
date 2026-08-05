@@ -28,6 +28,8 @@ export default function EditProfile() {
   const [yearsOfExperience, setYearsOfExperience] = useState("");
   const [languages, setLanguages] = useState("");
   const [preferredTitle, setPreferredTitle] = useState("");
+  const [accountType, setAccountType] = useState("developer");
+  const [visibleToRecruiters, setVisibleToRecruiters] = useState(true);
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -55,6 +57,8 @@ export default function EditProfile() {
         setYearsOfExperience(data.years_of_experience ?? "");
         setLanguages((data.languages || []).join(", "));
         setPreferredTitle(data.preferred_title || "");
+        setAccountType(data.account_type || "developer");
+        setVisibleToRecruiters(data.visible_to_recruiters ?? true);
       } catch (err) {
         setError(err.message);
       } finally {
@@ -89,6 +93,7 @@ export default function EditProfile() {
           years_of_experience: yearsOfExperience ? parseInt(yearsOfExperience) : null,
           languages: languages.split(",").map((l) => l.trim()).filter(Boolean),
           preferred_title: preferredTitle || null,
+          ...(accountType === "developer" ? { visible_to_recruiters: visibleToRecruiters } : {}),
         }),
       });
 
@@ -192,6 +197,23 @@ export default function EditProfile() {
             onChange={(e) => setAvailability(e.target.value)}
             className="px-4 py-2 border border-slate-300 rounded-lg bg-white text-navy placeholder:text-secondary focus:outline-none focus:border-accent"
           />
+
+          {accountType === "developer" && (
+            <label className="flex items-center justify-between gap-4 px-4 py-3 border border-slate-300 rounded-lg bg-white">
+              <span className="text-sm text-navy">
+                Visible to recruiters
+                <span className="block text-xs text-secondary font-normal mt-0.5">
+                  Let approved recruiters find and contact you via Find Talent.
+                </span>
+              </span>
+              <input
+                type="checkbox"
+                checked={visibleToRecruiters}
+                onChange={(e) => setVisibleToRecruiters(e.target.checked)}
+                className="w-4 h-4 accent-accent shrink-0"
+              />
+            </label>
+          )}
 
           {error && <p className="text-sm text-red-500">{error}</p>}
 

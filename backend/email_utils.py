@@ -73,6 +73,22 @@ def send_application_accepted_email(to_email: str, applicant_name: str, project_
     send_email(to_email, f"You've been accepted! Welcome to {project_title}", body)
 
 
+def send_recruiter_contact_email(to_email: str, developer_name: str, company_name: str, profile_url: str) -> None:
+    """Notifies a developer that an approved recruiter wants to get in touch. The
+    developer's real email is the `to_email` here (never handed back to the
+    recruiter — see POST /users/{user_id}/contact-request), and the recruiter never
+    sees this address either; contact stays mediated by Ernord."""
+    body = (
+        f"Hi {developer_name},\n\n"
+        f"A recruiter from {company_name} viewed your profile on Ernord and would like to get in touch "
+        "about an opportunity.\n\n"
+        f"You can review your profile here:\n{profile_url}\n\n"
+        "- Ernord"
+    )
+
+    send_email(to_email, f"A recruiter from {company_name} wants to connect on Ernord", body)
+
+
 CONTACT_INBOX = "ernordbusiness@hotmail.com"
 
 

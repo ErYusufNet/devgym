@@ -55,6 +55,22 @@ def get_current_user(authorization: str = Header(None), db: Session = Depends(ge
     return user
 
 
+# Simple, hardcoded gate for the one admin action this MVP has (approving recruiter
+# accounts). Matches email_utils.CONTACT_INBOX, the site's own admin address. Should
+# become a real admin-role check before this app has more than one admin action.
+ADMIN_EMAIL = "ernordbusiness@hotmail.com"
+
+
+def require_approved_recruiter(current_user: models.User) -> None:
+    """Shared gate for recruiter-only features (talent search, contact requests).
+    Raises 403 unless the caller is a recruiter account that's been manually approved."""
+    if current_user.account_type != models.AccountType.recruiter or not current_user.recruiter_approved:
+        raise HTTPException(
+            status_code=403,
+            detail="This feature is only available to approved recruiter accounts.",
+        )
+
+
 @app.get("/")
 def read_root():
     return {"message": "ErNord API is running"}
@@ -80,6 +96,7 @@ def create_user(request: Request, user: schemas.UserCreate, db: Session = Depend
     if existing:
         raise HTTPException(status_code=400, detail="This email is already registered")
 
+    account_type = user.account_type or models.AccountType.developer
     new_user = models.User(
         email=user.email,
         password_hash=auth.hash_password(user.password),
@@ -92,6 +109,12 @@ def create_user(request: Request, user: schemas.UserCreate, db: Session = Depend
         years_of_experience=user.years_of_experience,
         languages=user.languages,
         preferred_title=user.preferred_title,
+        account_type=account_type,
+        # Recruiter accounts always start unapproved regardless of what's passed in —
+        # there's no client-settable field for this, but staying explicit here means
+        # a recruiter signup never accidentally gets search access before manual review.
+        recruiter_approved=False,
+        company_name=user.company_name if account_type == models.AccountType.recruiter else None,
     )
     db.add(new_user)
     db.commit()
@@ -106,9 +129,18 @@ def search_users(
     languages: Optional[str] = None,
     title: Optional[str] = None,
     experience_level: Optional[models.ExperienceLevel] = None,
+    current_user: models.User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    query = db.query(models.User)
+    require_approved_recruiter(current_user)
+
+    # Find Talent searches for developers specifically — without this, recruiter and
+    # admin accounts (which also default to visible_to_recruiters=True) would show up
+    # alongside actual candidates.
+    query = db.query(models.User).filter(
+        models.User.account_type == models.AccountType.developer,
+        models.User.visible_to_recruiters.is_(True),
+    )
 
     if min_years_experience is not None:
         query = query.filter(models.User.years_of_experience >= min_years_experience)
@@ -228,6 +260,10 @@ def get_user_profile(user_id: str, db: Session = Depends(get_db)):
         "availability": user.availability,
         "plan": user.plan,
         "discord_id": user.discord_id,
+        "account_type": user.account_type,
+        "company_name": user.company_name,
+        "recruiter_approved": user.recruiter_approved,
+        "visible_to_recruiters": user.visible_to_recruiters,
         "owned_projects": [
             {"id": p.id, "title": p.title, "status": p.status} for p in owned_projects
         ],
@@ -264,6 +300,59 @@ def update_user(
     db.commit()
     db.refresh(current_user)
     return current_user
+
+
+@app.post("/users/{user_id}/contact-request")
+def send_contact_request(
+    user_id: str,
+    current_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    require_approved_recruiter(current_user)
+
+    developer = db.query(models.User).filter(models.User.id == user_id).first()
+    # Not found if: the id doesn't exist, it isn't a developer account (recruiters
+    # can't contact-request each other or an admin), or the developer opted out of
+    # recruiter visibility — visible_to_recruiters is the developer's privacy control,
+    # and it would be meaningless if a recruiter could route around it by id.
+    if (
+        not developer
+        or developer.account_type != models.AccountType.developer
+        or not developer.visible_to_recruiters
+    ):
+        raise HTTPException(status_code=404, detail="User not found")
+
+    email_utils.send_recruiter_contact_email(
+        to_email=developer.email,
+        developer_name=developer.full_name or "there",
+        company_name=current_user.company_name or "a company",
+        profile_url=f"{email_utils.FRONTEND_URL}/profile/{developer.id}",
+    )
+
+    # The developer's real email is never handed back to the recruiter — only a
+    # confirmation that the notification went out.
+    return {"detail": "Contact request sent"}
+
+
+@app.post("/admin/approve-recruiter/{user_id}")
+def approve_recruiter(
+    user_id: str,
+    current_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    if current_user.email != ADMIN_EMAIL:
+        raise HTTPException(status_code=403, detail="Not authorized")
+
+    user = db.query(models.User).filter(models.User.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    if user.account_type != models.AccountType.recruiter:
+        raise HTTPException(status_code=400, detail="This user is not a recruiter account")
+
+    user.recruiter_approved = True
+    db.commit()
+    db.refresh(user)
+    return {"detail": "Recruiter approved", "user_id": user.id}
 
 
 @app.get("/users/{user_id}/activity")

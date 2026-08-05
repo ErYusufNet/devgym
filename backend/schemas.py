@@ -2,7 +2,7 @@ from datetime import datetime
 from typing import Optional, List
 from pydantic import BaseModel, EmailStr, Field
 
-from models import ExperienceLevel, PlanType, ProjectStatus, ProjectType, PositionStatus, ApplicationStatus
+from models import ExperienceLevel, PlanType, ProjectStatus, ProjectType, PositionStatus, ApplicationStatus, AccountType
 
 
 # ---------- User ----------
@@ -18,6 +18,8 @@ class UserCreate(BaseModel):
     years_of_experience: Optional[int] = None
     languages: Optional[List[str]] = []
     preferred_title: Optional[str] = Field(default=None, max_length=200)
+    account_type: Optional[AccountType] = AccountType.developer
+    company_name: Optional[str] = Field(default=None, max_length=200)
 
 
 class UserUpdate(BaseModel):
@@ -29,6 +31,7 @@ class UserUpdate(BaseModel):
     years_of_experience: Optional[int] = None
     languages: Optional[List[str]] = None
     preferred_title: Optional[str] = Field(default=None, max_length=200)
+    visible_to_recruiters: Optional[bool] = None
 
 
 class UserOut(BaseModel):
@@ -45,6 +48,10 @@ class UserOut(BaseModel):
     languages: List[str] = []
     preferred_title: Optional[str] = None
     discord_id: Optional[str] = None
+    account_type: AccountType
+    company_name: Optional[str] = None
+    recruiter_approved: bool
+    visible_to_recruiters: bool
     created_at: datetime
 
     class Config:

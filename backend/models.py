@@ -2,7 +2,7 @@ import uuid
 from datetime import datetime
 
 from sqlalchemy import (
-    Column, String, Text, DateTime, ForeignKey, Enum, Integer, UniqueConstraint
+    Column, String, Text, DateTime, ForeignKey, Enum, Integer, UniqueConstraint, Boolean
 )
 from sqlalchemy.dialects.sqlite import JSON
 from sqlalchemy.orm import relationship
@@ -26,6 +26,11 @@ class ExperienceLevel(str, enum.Enum):
 class PlanType(str, enum.Enum):
     free = "free"
     premium = "premium"
+
+
+class AccountType(str, enum.Enum):
+    developer = "developer"
+    recruiter = "recruiter"
 
 
 class ProjectStatus(str, enum.Enum):
@@ -73,6 +78,10 @@ class User(Base):
     preferred_title = Column(String, nullable=True)
     discord_id = Column(String, nullable=True)
     github_access_token = Column(String, nullable=True)
+    account_type = Column(Enum(AccountType), default=AccountType.developer, nullable=False)
+    company_name = Column(String, nullable=True)
+    recruiter_approved = Column(Boolean, default=False, nullable=False)
+    visible_to_recruiters = Column(Boolean, default=True, nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow)
 
     projects = relationship("Project", back_populates="owner")
