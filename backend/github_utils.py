@@ -17,14 +17,20 @@ GITHUB_REDIRECT_URI = os.getenv("GITHUB_REDIRECT_URI")
 API_BASE = "https://api.github.com"
 
 
-def get_oauth_url() -> str:
+def get_oauth_url(state: str) -> str:
     """Build the URL that sends a user to GitHub's consent screen. repo scope is
     requested since a connected account is later used to create repos and manage
-    collaborators on the owner's behalf."""
+    collaborators on the owner's behalf.
+
+    `state` is a caller-generated, single-use token round-tripped through GitHub and
+    checked against the initiating user on callback, so a code obtained via someone
+    else's OAuth flow can't be replayed to link their GitHub account to a victim's
+    ErNord account (see SECURITY_AUDIT.md finding #4)."""
     params = {
         "client_id": GITHUB_CLIENT_ID,
         "redirect_uri": GITHUB_REDIRECT_URI,
         "scope": "repo",
+        "state": state,
     }
     return f"https://github.com/login/oauth/authorize?{urlencode(params)}"
 

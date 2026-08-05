@@ -10,13 +10,14 @@ import { API_URL } from "@/lib/api";
 function GithubCallbackHandler() {
   const searchParams = useSearchParams();
   const code = searchParams.get("code");
+  const state = searchParams.get("state");
 
   const [status, setStatus] = useState("connecting");
   const [error, setError] = useState("");
 
   useEffect(() => {
     async function completeConnection() {
-      if (!code) {
+      if (!code || !state) {
         setStatus("error");
         setError("Missing GitHub authorization code.");
         return;
@@ -26,7 +27,7 @@ function GithubCallbackHandler() {
         const res = await authFetch(`${API_URL}/github/callback`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ code }),
+          body: JSON.stringify({ code, state }),
         });
 
         if (!res.ok) {
@@ -47,7 +48,7 @@ function GithubCallbackHandler() {
       }
     }
     completeConnection();
-  }, [code]);
+  }, [code, state]);
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-white px-6 py-12">

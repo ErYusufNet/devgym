@@ -20,15 +20,21 @@ PERMISSION_VIEW_CHANNEL = 1 << 10
 PERMISSION_SEND_MESSAGES = 1 << 11
 
 
-def get_oauth_url() -> str:
+def get_oauth_url(state: str) -> str:
     """Build the URL that sends a user to Discord's consent screen. guilds.join is
     requested (not used yet) so a future version could auto-add connected users to
-    the team guild; for now only identify is actually read back."""
+    the team guild; for now only identify is actually read back.
+
+    `state` is a caller-generated, single-use token round-tripped through Discord and
+    checked against the initiating user on callback, so a code obtained via someone
+    else's OAuth flow can't be replayed to link their Discord account to a victim's
+    ErNord account (see SECURITY_AUDIT.md finding #4)."""
     params = {
         "client_id": DISCORD_CLIENT_ID,
         "redirect_uri": DISCORD_REDIRECT_URI,
         "response_type": "code",
         "scope": "identify guilds.join",
+        "state": state,
     }
     return f"https://discord.com/oauth2/authorize?{urlencode(params)}"
 

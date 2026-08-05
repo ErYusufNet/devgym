@@ -1,3 +1,4 @@
+import secrets
 from typing import Optional
 
 from fastapi import FastAPI, Depends, HTTPException, Header, Request
@@ -1211,11 +1212,43 @@ def reset_password(payload: schemas.ResetPasswordRequest, db: Session = Depends(
     return {"message": "Password has been reset successfully"}
 
 
+# ---------- OAuth state (CSRF protection for account-linking flows) ----------
+#
+# Discord/GitHub "connect" redirects the browser away from ErNord entirely, so the
+# callback can't rely on anything the frontend already had in hand for CSRF protection
+# — it needs a token that's tied to *this* login and *this* connect click. state is a
+# single-use, short-lived token minted at /connect time and required back at
+# /callback time; without it a code obtained via an attacker's own OAuth flow could be
+# replayed against a logged-in victim to link the attacker's account instead (see
+# SECURITY_AUDIT.md finding #4). Kept in memory rather than the DB since it's only
+# ever needed for the few minutes between /connect and /callback — same tradeoff as
+# github_utils's last-commit cache.
+_oauth_states: dict[str, tuple[str, float]] = {}  # state -> (user_id, expires_at)
+_OAUTH_STATE_TTL_SECONDS = 600  # 10 minutes — plenty for a user to complete the consent screen
+
+
+def _create_oauth_state(user_id: str) -> str:
+    state = secrets.token_urlsafe(32)
+    _oauth_states[state] = (user_id, datetime.utcnow().timestamp() + _OAUTH_STATE_TTL_SECONDS)
+    return state
+
+
+def _consume_oauth_state(state: str, user_id: str) -> bool:
+    """Check that `state` was minted for `user_id` and hasn't expired, then delete it
+    so it can never be replayed (whether the check passes or fails)."""
+    entry = _oauth_states.pop(state, None)
+    if not entry:
+        return False
+    stored_user_id, expires_at = entry
+    return stored_user_id == user_id and datetime.utcnow().timestamp() <= expires_at
+
+
 # ---------- Discord ----------
 
 @app.get("/discord/connect")
 def discord_connect(current_user: models.User = Depends(get_current_user)):
-    return {"url": discord_utils.get_oauth_url()}
+    state = _create_oauth_state(current_user.id)
+    return {"url": discord_utils.get_oauth_url(state)}
 
 
 @app.post("/discord/callback")
@@ -1224,6 +1257,9 @@ def discord_callback(
     current_user: models.User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
+    if not _consume_oauth_state(payload.state, current_user.id):
+        raise HTTPException(status_code=400, detail="Invalid or expired connection request. Please try again.")
+
     try:
         access_token = discord_utils.exchange_code_for_token(payload.code)
         discord_id = discord_utils.get_discord_user_id(access_token)
@@ -1241,7 +1277,8 @@ def discord_callback(
 
 @app.get("/github/connect")
 def github_connect(current_user: models.User = Depends(get_current_user)):
-    return {"url": github_utils.get_oauth_url()}
+    state = _create_oauth_state(current_user.id)
+    return {"url": github_utils.get_oauth_url(state)}
 
 
 @app.post("/github/callback")
@@ -1250,6 +1287,9 @@ def github_callback(
     current_user: models.User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
+    if not _consume_oauth_state(payload.state, current_user.id):
+        raise HTTPException(status_code=400, detail="Invalid or expired connection request. Please try again.")
+
     try:
         access_token = github_utils.exchange_code_for_token(payload.code)
         github_username = github_utils.get_github_username(access_token)
