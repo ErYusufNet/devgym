@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import FloatingTechLogosFixed from "@/components/FloatingTechLogosFixed";
 import { API_URL } from "@/lib/api";
+import { authFetch } from "@/lib/authFetch";
 
 export default function AddWorkExperience() {
   const router = useRouter();
@@ -21,7 +22,7 @@ export default function AddWorkExperience() {
     setError("");
 
     const userId = localStorage.getItem("devgym_user_id");
-    if (!userId) {
+    if (!userId || !localStorage.getItem("devgym_token")) {
       setError("Please log in to add work experience.");
       return;
     }
@@ -29,7 +30,7 @@ export default function AddWorkExperience() {
     setSaving(true);
 
     try {
-      const res = await fetch(API_URL + "/users/" + userId + "/work-experience", {
+      const res = await authFetch(API_URL + "/users/" + userId + "/work-experience", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

@@ -41,7 +41,7 @@ export default function MyProjects() {
 
       const appsMap = {};
       for (const project of myProjects) {
-        const appsRes = await fetch(`${API_URL}/projects/${project.id}/applications`);
+        const appsRes = await authFetch(`${API_URL}/projects/${project.id}/applications`);
         appsMap[project.id] = await appsRes.json();
       }
       setApplicationsByProject(appsMap);

@@ -275,7 +275,15 @@ def get_user_activity(user_id: str, db: Session = Depends(get_db)):
 # ---------- Work Experience ----------
 
 @app.post("/users/{user_id}/work-experience", response_model=schemas.WorkExperienceOut)
-def create_work_experience(user_id: str, experience: schemas.WorkExperienceCreate, db: Session = Depends(get_db)):
+def create_work_experience(
+    user_id: str,
+    experience: schemas.WorkExperienceCreate,
+    current_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    if user_id != current_user.id:
+        raise HTTPException(status_code=403, detail="You can only add work experience to your own profile")
+
     user = db.query(models.User).filter(models.User.id == user_id).first()
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
@@ -300,10 +308,16 @@ def list_work_experience(user_id: str, db: Session = Depends(get_db)):
 
 
 @app.delete("/work-experience/{experience_id}")
-def delete_work_experience(experience_id: str, db: Session = Depends(get_db)):
+def delete_work_experience(
+    experience_id: str,
+    current_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
     experience = db.query(models.WorkExperience).filter(models.WorkExperience.id == experience_id).first()
     if not experience:
         raise HTTPException(status_code=404, detail="Work experience not found")
+    if experience.user_id != current_user.id:
+        raise HTTPException(status_code=403, detail="You can only delete your own work experience")
 
     db.delete(experience)
     db.commit()
@@ -313,7 +327,15 @@ def delete_work_experience(experience_id: str, db: Session = Depends(get_db)):
 # ---------- Education ----------
 
 @app.post("/users/{user_id}/education", response_model=schemas.EducationOut)
-def create_education(user_id: str, education: schemas.EducationCreate, db: Session = Depends(get_db)):
+def create_education(
+    user_id: str,
+    education: schemas.EducationCreate,
+    current_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    if user_id != current_user.id:
+        raise HTTPException(status_code=403, detail="You can only add education to your own profile")
+
     user = db.query(models.User).filter(models.User.id == user_id).first()
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
@@ -338,10 +360,16 @@ def list_education(user_id: str, db: Session = Depends(get_db)):
 
 
 @app.delete("/education/{education_id}")
-def delete_education(education_id: str, db: Session = Depends(get_db)):
+def delete_education(
+    education_id: str,
+    current_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
     education = db.query(models.Education).filter(models.Education.id == education_id).first()
     if not education:
         raise HTTPException(status_code=404, detail="Education not found")
+    if education.user_id != current_user.id:
+        raise HTTPException(status_code=403, detail="You can only delete your own education")
 
     db.delete(education)
     db.commit()
@@ -682,10 +710,17 @@ def create_project_repo(
 # ---------- Positions ----------
 
 @app.post("/projects/{project_id}/positions", response_model=schemas.PositionOut)
-def create_position(project_id: str, position: schemas.PositionCreate, db: Session = Depends(get_db)):
+def create_position(
+    project_id: str,
+    position: schemas.PositionCreate,
+    current_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
     project = db.query(models.Project).filter(models.Project.id == project_id).first()
     if not project:
         raise HTTPException(status_code=404, detail="Project not found")
+    if project.owner_id != current_user.id:
+        raise HTTPException(status_code=403, detail="Only the project owner can add positions")
 
     new_position = models.Position(
         project_id=project_id,
@@ -728,7 +763,17 @@ def delete_position(
 
 
 @app.get("/projects/{project_id}/applications")
-def get_project_applications(project_id: str, db: Session = Depends(get_db)):
+def get_project_applications(
+    project_id: str,
+    current_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    project = db.query(models.Project).filter(models.Project.id == project_id).first()
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+    if project.owner_id != current_user.id:
+        raise HTTPException(status_code=403, detail="Only the project owner can view its applications")
+
     positions = db.query(models.Position).filter(models.Position.project_id == project_id).all()
     position_ids = [p.id for p in positions]
     position_map = {p.id: p.role_name for p in positions}

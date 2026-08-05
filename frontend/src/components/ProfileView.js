@@ -61,12 +61,12 @@ export default function ProfileView({ userId: userIdProp, editable = false }) {
   }, [userIdProp]);
 
   async function handleDeleteWorkExperience(id) {
-    await fetch(API_URL + "/work-experience/" + id, { method: "DELETE" });
+    await authFetch(API_URL + "/work-experience/" + id, { method: "DELETE" });
     setWorkExperience(workExperience.filter((item) => item.id !== id));
   }
 
   async function handleDeleteEducation(id) {
-    await fetch(API_URL + "/education/" + id, { method: "DELETE" });
+    await authFetch(API_URL + "/education/" + id, { method: "DELETE" });
     setEducation(education.filter((item) => item.id !== id));
   }
 
