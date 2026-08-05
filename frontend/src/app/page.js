@@ -3,7 +3,6 @@ import IconBadge from "@/components/IconBadge";
 import ScrollReveal from "@/components/ScrollReveal";
 import StatsStrip from "@/components/StatsStrip";
 import TechMarquee from "@/components/TechMarquee";
-import Footer from "@/components/Footer";
 import {
   IconRocket,
   IconUsers,
@@ -202,8 +201,6 @@ export default function Home() {
       </section>
 
       <TechMarquee />
-
-      <Footer />
     </div>
   );
 }
