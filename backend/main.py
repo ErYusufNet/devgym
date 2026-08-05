@@ -1,10 +1,11 @@
+import difflib
 import secrets
 from typing import Optional
 
 from fastapi import FastAPI, Depends, HTTPException, Header, Request
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
-from datetime import datetime
+from datetime import datetime, timedelta
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
@@ -462,12 +463,52 @@ def get_project_last_commit(project: models.Project, db: Session) -> Optional[da
     return github_utils.get_last_commit_date_cached(full_repo_name, access_token)
 
 
+MAX_ACTIVE_PROJECTS_PER_USER = 10
+DUPLICATE_TITLE_SIMILARITY_THRESHOLD = 0.9
+DUPLICATE_TITLE_LOOKBACK_HOURS = 24
+
+
 @app.post("/projects", response_model=schemas.ProjectOut)
 def create_project(
     project: schemas.ProjectCreate,
     current_user: models.User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
+    active_project_count = (
+        db.query(models.Project)
+        .filter(
+            models.Project.owner_id == current_user.id,
+            models.Project.status == models.ProjectStatus.active,
+        )
+        .count()
+    )
+    if active_project_count >= MAX_ACTIVE_PROJECTS_PER_USER:
+        raise HTTPException(
+            status_code=429,
+            detail="You have too many active projects open. Complete or archive some before publishing a new one.",
+        )
+
+    recent_cutoff = datetime.utcnow() - timedelta(hours=DUPLICATE_TITLE_LOOKBACK_HOURS)
+    recent_titles = [
+        row[0]
+        for row in db.query(models.Project.title)
+        .filter(
+            models.Project.owner_id == current_user.id,
+            models.Project.created_at >= recent_cutoff,
+        )
+        .all()
+    ]
+    new_title_normalized = project.title.strip().lower()
+    for existing_title in recent_titles:
+        similarity = difflib.SequenceMatcher(
+            None, new_title_normalized, (existing_title or "").strip().lower()
+        ).ratio()
+        if similarity >= DUPLICATE_TITLE_SIMILARITY_THRESHOLD:
+            raise HTTPException(
+                status_code=400,
+                detail="You already have a very similar project. Please edit your existing project instead of creating a duplicate.",
+            )
+
     new_project = models.Project(
         owner_id=current_user.id,
         title=project.title,
