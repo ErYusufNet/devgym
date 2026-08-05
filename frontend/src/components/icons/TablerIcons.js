@@ -7,6 +7,14 @@ const base = {
   strokeLinejoin: "round",
 };
 
+export function IconChevronDown({ className = "w-5 h-5" }) {
+  return (
+    <svg {...base} className={className}>
+      <path d="M6 9l6 6l6 -6" />
+    </svg>
+  );
+}
+
 export function IconRocket({ className = "w-5 h-5" }) {
   return (
     <svg {...base} className={className}>

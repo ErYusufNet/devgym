@@ -33,7 +33,7 @@ export default function CompleteProjectModal({ onCancel, onConfirm, submitting }
           <button
             onClick={() => onConfirm(summary)}
             disabled={submitting}
-            className="px-4 py-2 text-sm bg-accent text-white rounded-lg font-medium hover:bg-accent-hover disabled:opacity-50"
+            className="px-4 py-2 text-sm bg-accent text-white rounded-lg font-medium hover:bg-accent-hover transition-[transform,background-color] duration-150 ease-[cubic-bezier(0.34,1.56,0.64,1)] hover:scale-105 hover:-translate-y-0.5 disabled:opacity-50 disabled:hover:scale-100 disabled:hover:translate-y-0"
           >
             {submitting ? "Completing..." : "Mark as completed"}
           </button>

@@ -10,7 +10,7 @@ export default function HealthBadge({ health }) {
 
   return (
     <span className={`inline-flex items-center gap-1.5 text-xs px-2 py-1 rounded-full bg-surface ${meta.text}`}>
-      <span className={`w-1.5 h-1.5 rounded-full ${meta.dot}`} />
+      <span className={`w-1.5 h-1.5 rounded-full ${meta.dot} ${health === "active" ? "animate-[pulseDot_1.5s_infinite]" : ""}`} />
       {meta.label}
     </span>
   );

@@ -59,6 +59,17 @@ def read_root():
     return {"message": "ErNord API is running"}
 
 
+@app.get("/stats")
+def get_platform_stats(db: Session = Depends(get_db)):
+    """Public, aggregate-only counts for landing page stats. No auth needed and no
+    per-record data returned — unlike the removed GET /users (see SECURITY_AUDIT.md
+    finding #7), this can't be used to enumerate accounts or projects."""
+    return {
+        "developers": db.query(models.User).count(),
+        "projects": db.query(models.Project).count(),
+    }
+
+
 # ---------- Users ----------
 
 @app.post("/users", response_model=schemas.UserOut)

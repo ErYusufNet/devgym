@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import ScrollReveal from "@/components/ScrollReveal";
 import { StarRatingDisplay } from "@/components/StarRating";
 import FloatingTechLogosFixed from "@/components/FloatingTechLogosFixed";
+import { IconChevronDown } from "@/components/icons/TablerIcons";
 import { POSITION_ROLES } from "@/lib/roles";
 import { API_URL } from "@/lib/api";
 
@@ -19,6 +20,7 @@ export default function Talent() {
   const [languages, setLanguages] = useState("");
   const [title, setTitle] = useState("");
   const [experienceLevel, setExperienceLevel] = useState("");
+  const [filtersOpen, setFiltersOpen] = useState(true);
 
   const fetchCandidates = useCallback(async () => {
     setLoading(true);
@@ -60,6 +62,22 @@ export default function Talent() {
         </ScrollReveal>
 
         <ScrollReveal className="mb-8">
+          <button
+            type="button"
+            onClick={() => setFiltersOpen(!filtersOpen)}
+            aria-expanded={filtersOpen}
+            className="flex items-center justify-between w-full mb-3 text-sm font-medium text-navy"
+          >
+            Filters
+            <IconChevronDown
+              className={
+                "w-4 h-4 text-secondary transition-transform duration-200 ease-out " +
+                (filtersOpen ? "rotate-180" : "")
+              }
+            />
+          </button>
+
+          {filtersOpen && (
           <div className="border border-card-border rounded-xl p-5 bg-card shadow-sm grid grid-cols-2 sm:grid-cols-3 gap-4">
             <div className="flex flex-col gap-1">
               <label className="text-xs text-secondary">Skills</label>
@@ -123,6 +141,7 @@ export default function Talent() {
               </select>
             </div>
           </div>
+          )}
         </ScrollReveal>
 
         {loading && <p className="text-secondary">Loading...</p>}

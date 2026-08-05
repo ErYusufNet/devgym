@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import ScrollReveal from "@/components/ScrollReveal";
+import SlideIn from "@/components/SlideIn";
 import IconBadge from "@/components/IconBadge";
 import HealthBadge from "@/components/HealthBadge";
 import { IconUsers, IconHeartHandshake, IconStarFilled } from "@/components/icons/TablerIcons";
@@ -392,7 +393,7 @@ export default function ProjectDetail() {
 
           <div className="flex flex-col gap-3">
             {positions.map((position, i) => (
-              <ScrollReveal key={position.id} delay={(i % 4) * 80}>
+              <SlideIn key={position.id} index={i}>
                 <div className="border border-card-border rounded-xl p-5 bg-card shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 flex items-center justify-between">
                   <div>
                     <p className="font-medium text-navy">{position.role_name}</p>
@@ -405,7 +406,7 @@ export default function ProjectDetail() {
                     <button
                       onClick={() => handleApply(position.id)}
                       disabled={applyingTo === position.id}
-                      className="text-xs px-3 py-1.5 rounded-md bg-accent text-white hover:bg-accent-hover disabled:opacity-50 shrink-0"
+                      className="text-xs px-3 py-1.5 rounded-md bg-accent text-white hover:bg-accent-hover transition-[transform,background-color] duration-150 ease-[cubic-bezier(0.34,1.56,0.64,1)] hover:scale-105 hover:-translate-y-0.5 disabled:opacity-50 disabled:hover:scale-100 disabled:hover:translate-y-0 shrink-0"
                     >
                       {applyingTo === position.id ? "Applying..." : "Apply"}
                     </button>
@@ -415,7 +416,7 @@ export default function ProjectDetail() {
                     </span>
                   )}
                 </div>
-              </ScrollReveal>
+              </SlideIn>
             ))}
 
             {positions.length === 0 && (
@@ -486,7 +487,7 @@ export default function ProjectDetail() {
                 <button
                   type="submit"
                   disabled={postingComment || !commentText.trim()}
-                  className="self-end px-4 py-2 bg-accent text-white rounded-lg text-sm font-medium hover:bg-accent-hover disabled:opacity-50"
+                  className="self-end px-4 py-2 bg-accent text-white rounded-lg text-sm font-medium hover:bg-accent-hover transition-[transform,background-color] duration-150 ease-[cubic-bezier(0.34,1.56,0.64,1)] hover:scale-105 hover:-translate-y-0.5 disabled:opacity-50 disabled:hover:scale-100 disabled:hover:translate-y-0"
                 >
                   {postingComment ? "Posting..." : "Post comment"}
                 </button>

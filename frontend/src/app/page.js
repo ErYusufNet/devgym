@@ -1,6 +1,8 @@
 import FloatingTechLogos from "@/components/FloatingTechLogos";
 import IconBadge from "@/components/IconBadge";
 import ScrollReveal from "@/components/ScrollReveal";
+import StatsStrip from "@/components/StatsStrip";
+import TechMarquee from "@/components/TechMarquee";
 import Footer from "@/components/Footer";
 import {
   IconRocket,
@@ -115,14 +117,19 @@ export default function Home() {
             Ernord helps unemployed and early-career developers keep their skills sharp by working on real software projects with real teams — not alone, not just tutorials.
           </p>
 
-          <div className="flex flex-wrap justify-center gap-4">
-            <a href="/register" className="px-6 py-3 bg-accent text-white rounded-lg font-medium hover:bg-accent-hover">
+          <div className="flex flex-wrap justify-center gap-4 mb-16">
+            <a
+              href="/register"
+              className="px-6 py-3 bg-accent text-white rounded-lg font-medium hover:bg-accent-hover transition-[transform,background-color] duration-150 ease-[cubic-bezier(0.34,1.56,0.64,1)] hover:scale-105 hover:-translate-y-0.5"
+            >
               Get started free
             </a>
             <a href="#how-it-works" className="px-6 py-3 bg-white border border-slate-200 rounded-lg font-medium text-navy hover:bg-surface">
               See how it works
             </a>
           </div>
+
+          <StatsStrip />
         </div>
       </section>
 
@@ -135,8 +142,8 @@ export default function Home() {
         <div className="grid sm:grid-cols-3 gap-6">
           {AUDIENCES.map((item, i) => (
             <ScrollReveal key={item.title} delay={i * 100}>
-              <div className="h-full border border-slate-200 rounded-xl p-6 bg-white shadow-sm hover:shadow-md transition-shadow">
-                <IconBadge icon={item.icon} color={item.color} />
+              <div className="group h-full border border-slate-200 rounded-xl p-6 bg-white shadow-sm hover:shadow-md transition-shadow">
+                <IconBadge icon={item.icon} color={item.color} spin />
                 <h3 className="text-lg font-semibold text-navy mt-4 mb-2">{item.title}</h3>
                 <p className="text-sm text-secondary mb-4">{item.description}</p>
                 <a href={item.href} className="inline-flex items-center gap-1 text-sm font-medium text-accent hover:text-accent-hover">
@@ -162,9 +169,9 @@ export default function Home() {
             <div className="grid md:grid-cols-4 gap-10">
               {STEPS.map((step, i) => (
                 <ScrollReveal key={step.title} delay={i * 100}>
-                  <div className="relative flex flex-col items-center text-center">
+                  <div className="group relative flex flex-col items-center text-center">
                     <div className="relative bg-surface">
-                      <IconBadge icon={step.icon} color={step.color} />
+                      <IconBadge icon={step.icon} color={step.color} spin />
                     </div>
                     <h3 className="text-base font-semibold text-navy mt-4 mb-1">{step.title}</h3>
                     <p className="text-sm text-secondary">{step.description}</p>
@@ -184,8 +191,8 @@ export default function Home() {
         <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
           {REASONS.map((item, i) => (
             <ScrollReveal key={item.title} delay={i * 100}>
-              <div className="h-full border border-slate-200 rounded-xl p-6 bg-white shadow-sm hover:shadow-md transition-shadow">
-                <IconBadge icon={item.icon} color={item.color} />
+              <div className="group h-full border border-slate-200 rounded-xl p-6 bg-white shadow-sm hover:shadow-md transition-shadow">
+                <IconBadge icon={item.icon} color={item.color} spin />
                 <h3 className="text-base font-semibold text-navy mt-4 mb-2">{item.title}</h3>
                 <p className="text-sm text-secondary">{item.description}</p>
               </div>
@@ -193,6 +200,8 @@ export default function Home() {
           ))}
         </div>
       </section>
+
+      <TechMarquee />
 
       <Footer />
     </div>

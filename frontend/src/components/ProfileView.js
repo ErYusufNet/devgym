@@ -3,8 +3,10 @@
 import { useEffect, useState } from "react";
 import ActivityHeatmap from "@/components/ActivityHeatmap";
 import ScrollReveal from "@/components/ScrollReveal";
+import SlideIn from "@/components/SlideIn";
 import IconBadge from "@/components/IconBadge";
 import CompletionRateRing from "@/components/CompletionRateRing";
+import FillBar from "@/components/FillBar";
 import ReputationSummary from "@/components/ReputationSummary";
 import FloatingTechLogosFixed from "@/components/FloatingTechLogosFixed";
 import { StarRatingDisplay } from "@/components/StarRating";
@@ -110,6 +112,23 @@ export default function ProfileView({ userId: userIdProp, editable = false }) {
     ? "https://github.com/" + profile.github_username
     : null;
 
+  // Simple, even-weighted completion score across the fields a developer would
+  // realistically want filled in before sharing their profile.
+  const completionChecks = [
+    !!profile.full_name,
+    !!profile.bio,
+    profile.skills && profile.skills.length > 0,
+    !!profile.github_username,
+    !!profile.availability,
+    profile.years_of_experience != null,
+    !!profile.preferred_title,
+    workExperience.length > 0,
+    education.length > 0,
+  ];
+  const completionPct = Math.round(
+    (completionChecks.filter(Boolean).length / completionChecks.length) * 100
+  );
+
   return (
     <div className="min-h-screen bg-white px-6 py-12">
       <FloatingTechLogosFixed />
@@ -134,6 +153,16 @@ export default function ProfileView({ userId: userIdProp, editable = false }) {
             </a>
           )}
         </ScrollReveal>
+
+        {editable && completionPct < 100 && (
+          <ScrollReveal className="mb-8">
+            <div className="flex items-center justify-between mb-1.5">
+              <p className="text-xs font-medium text-secondary">Profile completion</p>
+              <p className="text-xs font-medium text-navy">{completionPct}%</p>
+            </div>
+            <FillBar value={completionPct} />
+          </ScrollReveal>
+        )}
 
         <div className="flex flex-wrap gap-3 mb-8 text-sm">
           {profile.experience_level && (
@@ -222,8 +251,8 @@ export default function ProfileView({ userId: userIdProp, editable = false }) {
             )}
           </div>
           <div className="flex flex-col gap-3">
-            {workExperience.map((item) => (
-              <div key={item.id} className="border border-card-border rounded-xl p-5 bg-white shadow-sm hover:shadow-md transition-shadow flex items-start gap-4">
+            {workExperience.map((item, i) => (
+              <SlideIn key={item.id} index={i} className="border border-card-border rounded-xl p-5 bg-white shadow-sm hover:shadow-md transition-shadow flex items-start gap-4">
                 <IconBadge icon={IconBriefcase} color="blue" size="sm" />
                 <div className="flex-1 flex items-start justify-between gap-3">
                   <div>
@@ -240,7 +269,7 @@ export default function ProfileView({ userId: userIdProp, editable = false }) {
                     </button>
                   )}
                 </div>
-              </div>
+              </SlideIn>
             ))}
             {workExperience.length === 0 && (
               <p className="text-sm text-secondary">No work experience added yet.</p>
@@ -264,8 +293,8 @@ export default function ProfileView({ userId: userIdProp, editable = false }) {
             )}
           </div>
           <div className="flex flex-col gap-3">
-            {education.map((item) => (
-              <div key={item.id} className="border border-card-border rounded-xl p-5 bg-white shadow-sm hover:shadow-md transition-shadow flex items-start gap-4">
+            {education.map((item, i) => (
+              <SlideIn key={item.id} index={i} className="border border-card-border rounded-xl p-5 bg-white shadow-sm hover:shadow-md transition-shadow flex items-start gap-4">
                 <IconBadge icon={IconSchool} color="purple" size="sm" />
                 <div className="flex-1 flex items-start justify-between gap-3">
                   <div>
@@ -282,7 +311,7 @@ export default function ProfileView({ userId: userIdProp, editable = false }) {
                     </button>
                   )}
                 </div>
-              </div>
+              </SlideIn>
             ))}
             {education.length === 0 && (
               <p className="text-sm text-secondary">No education added yet.</p>

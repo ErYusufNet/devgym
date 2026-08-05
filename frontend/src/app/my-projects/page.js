@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import ScrollReveal from "@/components/ScrollReveal";
+import SlideIn from "@/components/SlideIn";
 import IconBadge from "@/components/IconBadge";
 import { IconPencil, IconTrash } from "@/components/icons/TablerIcons";
 import { getProjectTypeMeta } from "@/lib/projectTypeMeta";
@@ -168,8 +169,8 @@ export default function MyProjects() {
             const applications = applicationsByProject[project.id] || [];
             const meta = getProjectTypeMeta(project.project_type);
             return (
-              <ScrollReveal key={project.id} delay={(i % 4) * 80}>
-                <div className="relative border border-card-border rounded-xl p-6 bg-card shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200">
+              <ScrollReveal key={project.id} delay={(i % 4) * 80} className="[perspective:600px]">
+                <div className="relative border border-card-border rounded-xl p-6 bg-card shadow-sm hover:shadow-md transition-[transform,box-shadow] duration-300 ease-out hover:[transform:rotateX(4deg)_rotateY(-4deg)_scale(1.01)]">
                   <div className="absolute top-4 right-4 flex gap-1">
                     <a
                       href={`/projects/${project.id}/edit`}
@@ -209,8 +210,8 @@ export default function MyProjects() {
                   </div>
 
                   <div className="flex flex-col gap-2">
-                    {applications.map((app) => (
-                      <div key={app.id} className="flex items-center justify-between border border-card-border rounded-lg p-3">
+                    {applications.map((app, appIndex) => (
+                      <SlideIn key={app.id} index={appIndex} className="flex items-center justify-between border border-card-border rounded-lg p-3">
                         <div className="flex items-center gap-3">
                           <div className="w-8 h-8 rounded-full bg-blue-600/10 text-blue-600 flex items-center justify-center text-xs font-semibold shrink-0">
                             {(app.applicant_name || app.applicant_email || "?")[0].toUpperCase()}
@@ -244,7 +245,7 @@ export default function MyProjects() {
                             </button>
                           </div>
                         )}
-                      </div>
+                      </SlideIn>
                     ))}
 
                     {applications.length === 0 && (

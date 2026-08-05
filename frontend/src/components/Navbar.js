@@ -56,7 +56,10 @@ export default function Navbar() {
               <a href="/login" className="px-3 py-1.5 rounded-lg text-secondary hover:text-navy hover:bg-card transition-colors duration-200">
                 Log in
               </a>
-              <a href="/register" className="px-3 py-1.5 bg-accent text-white rounded-lg font-medium hover:bg-accent-hover transition-colors duration-200">
+              <a
+                href="/register"
+                className="px-3 py-1.5 bg-accent text-white rounded-lg font-medium hover:bg-accent-hover transition-[transform,background-color] duration-150 ease-[cubic-bezier(0.34,1.56,0.64,1)] hover:scale-105 hover:-translate-y-0.5"
+              >
                 Sign up
               </a>
             </>

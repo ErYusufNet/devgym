@@ -5,7 +5,7 @@ import ScrollReveal from "@/components/ScrollReveal";
 import IconBadge from "@/components/IconBadge";
 import HealthBadge from "@/components/HealthBadge";
 import FloatingTechLogosFixed from "@/components/FloatingTechLogosFixed";
-import { IconBrandGithub } from "@/components/icons/TablerIcons";
+import { IconBrandGithub, IconChevronDown } from "@/components/icons/TablerIcons";
 import { getProjectTypeMeta } from "@/lib/projectTypeMeta";
 import { POSITION_ROLES } from "@/lib/roles";
 import { API_URL } from "@/lib/api";
@@ -23,6 +23,7 @@ export default function Discover() {
   const [maxDuration, setMaxDuration] = useState("");
   const [maxHours, setMaxHours] = useState("");
   const [openOnly, setOpenOnly] = useState(true);
+  const [filtersOpen, setFiltersOpen] = useState(true);
 
   const fetchProjects = useCallback(async () => {
     setLoading(true);
@@ -65,6 +66,22 @@ export default function Discover() {
         </ScrollReveal>
 
         <ScrollReveal className="mb-8">
+          <button
+            type="button"
+            onClick={() => setFiltersOpen(!filtersOpen)}
+            aria-expanded={filtersOpen}
+            className="flex items-center justify-between w-full mb-3 text-sm font-medium text-navy"
+          >
+            Filters
+            <IconChevronDown
+              className={
+                "w-4 h-4 text-secondary transition-transform duration-200 ease-out " +
+                (filtersOpen ? "rotate-180" : "")
+              }
+            />
+          </button>
+
+          {filtersOpen && (
           <div className="border border-card-border rounded-xl p-5 bg-card shadow-sm grid grid-cols-2 sm:grid-cols-3 gap-4">
             <div className="flex flex-col gap-1">
               <label className="text-xs text-secondary">Role</label>
@@ -141,6 +158,7 @@ export default function Discover() {
               </label>
             </div>
           </div>
+          )}
         </ScrollReveal>
 
         {loading && <p className="text-secondary">Loading...</p>}
@@ -150,8 +168,8 @@ export default function Discover() {
           {projects.map((project, i) => {
             const meta = getProjectTypeMeta(project.project_type);
             return (
-              <ScrollReveal key={project.id} delay={(i % 4) * 80}>
-                <div className="border border-card-border rounded-xl p-6 bg-card shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200">
+              <ScrollReveal key={project.id} delay={(i % 4) * 80} className="[perspective:600px]">
+                <div className="border border-card-border rounded-xl p-6 bg-card shadow-sm hover:shadow-md transition-[transform,box-shadow] duration-300 ease-out hover:[transform:rotateX(4deg)_rotateY(-4deg)_scale(1.01)]">
                   <div className="flex items-start justify-between mb-4">
                     <IconBadge icon={meta.icon} color={meta.color} />
                     {project.project_type && (
