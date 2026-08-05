@@ -267,3 +267,11 @@ class DiscordCallbackRequest(BaseModel):
 class GithubCallbackRequest(BaseModel):
     code: str
     state: str
+
+
+# ---------- Contact ----------
+
+class ContactMessageCreate(BaseModel):
+    name: str = Field(max_length=200)
+    email: EmailStr
+    message: str = Field(max_length=3000)

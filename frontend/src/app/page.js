@@ -16,6 +16,7 @@ import {
   IconFolder,
   IconShieldCheck,
   IconHeartHandshake,
+  IconUserPlus,
 } from "@/components/icons/TablerIcons";
 
 const AUDIENCES = [
@@ -66,6 +67,37 @@ const STEPS = [
     description: "Every contribution lands in a real repo — and your portfolio.",
     icon: IconBrandGithub,
     color: "teal",
+  },
+];
+
+const CAPABILITIES = [
+  {
+    title: "Publish your own project",
+    description: "Share an idea, define the roles you need, and recruit a real team.",
+    icon: IconRocket,
+    color: "blue",
+    href: "/create-project",
+  },
+  {
+    title: "Join projects that fit you",
+    description: "Filter by role, technology, and time commitment. Apply in one click.",
+    icon: IconUsers,
+    color: "purple",
+    href: "/discover",
+  },
+  {
+    title: "Prove your work",
+    description: "Every project connects to GitHub — your commits, your contributions, visible and verified.",
+    icon: IconBrandGithub,
+    color: "teal",
+    href: "/completed",
+  },
+  {
+    title: "Get discovered",
+    description: "Recruiters can find you through Find Talent, based on your real activity — not just a CV.",
+    icon: IconUserPlus,
+    color: "pink",
+    href: "/talent",
   },
 ];
 
@@ -178,6 +210,30 @@ export default function Home() {
                 </ScrollReveal>
               ))}
             </div>
+          </div>
+        </div>
+      </section>
+
+      <section className="bg-surface px-6 py-24">
+        <div className="max-w-5xl mx-auto">
+          <ScrollReveal className="text-center mb-14">
+            <h2 className="text-3xl font-semibold text-navy mb-3">What can you do here?</h2>
+            <p className="text-secondary max-w-xl mx-auto">Everything you need to turn idle time into a real track record.</p>
+          </ScrollReveal>
+
+          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            {CAPABILITIES.map((item, i) => (
+              <ScrollReveal key={item.title} delay={i * 100}>
+                <a
+                  href={item.href}
+                  className="group h-full block border border-slate-200 rounded-xl p-6 bg-white shadow-sm hover:shadow-md transition-shadow"
+                >
+                  <IconBadge icon={item.icon} color={item.color} spin />
+                  <h3 className="text-base font-semibold text-navy mt-4 mb-2">{item.title}</h3>
+                  <p className="text-sm text-secondary">{item.description}</p>
+                </a>
+              </ScrollReveal>
+            ))}
           </div>
         </div>
       </section>

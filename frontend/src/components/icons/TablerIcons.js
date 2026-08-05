@@ -7,6 +7,23 @@ const base = {
   strokeLinejoin: "round",
 };
 
+export function IconMail({ className = "w-5 h-5" }) {
+  return (
+    <svg {...base} className={className}>
+      <path d="M3 7a2 2 0 0 1 2 -2h14a2 2 0 0 1 2 2v10a2 2 0 0 1 -2 2h-14a2 2 0 0 1 -2 -2v-10z" />
+      <path d="M3 7l9 6l9 -6" />
+    </svg>
+  );
+}
+
+export function IconHeart({ className = "w-5 h-5" }) {
+  return (
+    <svg {...base} className={className}>
+      <path d="M19.5 12.572l-7.5 7.428l-7.5 -7.428a5 5 0 1 1 7.5 -6.572a5 5 0 1 1 7.5 6.572" />
+    </svg>
+  );
+}
+
 export function IconChevronDown({ className = "w-5 h-5" }) {
   return (
     <svg {...base} className={className}>

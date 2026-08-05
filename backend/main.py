@@ -1313,3 +1313,17 @@ def github_callback(
     db.commit()
     db.refresh(current_user)
     return {"github_username": current_user.github_username, "github_connected": True}
+
+
+# ---------- Contact ----------
+
+@app.post("/contact")
+@limiter.limit("5/hour")
+def submit_contact_message(request: Request, payload: schemas.ContactMessageCreate):
+    try:
+        email_utils.send_contact_message_email(payload.name, payload.email, payload.message)
+    except Exception as exc:
+        print(f"[submit_contact_message] Failed to send contact email: {exc}")
+        raise HTTPException(status_code=502, detail="Could not send your message. Please try again later.")
+
+    return {"message": "Thanks for reaching out — we'll get back to you soon."}

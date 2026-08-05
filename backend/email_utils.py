@@ -13,13 +13,17 @@ SMTP_PASSWORD = os.getenv("SMTP_PASSWORD")
 FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:3000")
 
 
-def send_email(to_email: str, subject: str, body: str) -> None:
+def send_email(to_email: str, subject: str, body: str, reply_to: str = None) -> None:
     """Generic single-recipient plaintext email sender, shared by every notification
-    below so the SMTP wiring only lives in one place."""
+    below so the SMTP wiring only lives in one place. `reply_to` is only ever passed
+    a pydantic-validated EmailStr by callers, so it's safe to drop straight into a
+    header (no newlines a real email address could contain)."""
     msg = MIMEText(body)
     msg["Subject"] = subject
     msg["From"] = SMTP_EMAIL
     msg["To"] = to_email
+    if reply_to:
+        msg["Reply-To"] = reply_to
 
     with smtplib.SMTP(SMTP_SERVER, SMTP_PORT) as server:
         server.starttls()
@@ -67,3 +71,22 @@ def send_application_accepted_email(to_email: str, applicant_name: str, project_
     )
 
     send_email(to_email, f"You've been accepted! Welcome to {project_title}", body)
+
+
+CONTACT_INBOX = "ernordbusiness@hotmail.com"
+
+
+def send_contact_message_email(name: str, from_email: str, message: str) -> None:
+    """Forwards a contact-form submission to the site inbox. The subject is a fixed
+    string (not built from user input) so a name/message containing CR/LF can't be
+    used for email header injection; `from_email` is set as Reply-To (safe — it's a
+    pydantic-validated EmailStr, see send_email) so replying goes straight to the
+    visitor."""
+    body = (
+        "New message from the Ernord contact form.\n\n"
+        f"Name: {name}\n"
+        f"Email: {from_email}\n\n"
+        f"Message:\n{message}\n"
+    )
+
+    send_email(CONTACT_INBOX, "New message from the Ernord contact form", body, reply_to=from_email)
