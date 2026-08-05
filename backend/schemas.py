@@ -10,25 +10,25 @@ from models import ExperienceLevel, PlanType, ProjectStatus, ProjectType, Positi
 class UserCreate(BaseModel):
     email: EmailStr
     password: str
-    full_name: Optional[str] = None
-    bio: Optional[str] = None
+    full_name: Optional[str] = Field(default=None, max_length=200)
+    bio: Optional[str] = Field(default=None, max_length=5000)
     skills: Optional[List[str]] = []
-    github_username: Optional[str] = None
-    availability: Optional[str] = None
+    github_username: Optional[str] = Field(default=None, max_length=100)
+    availability: Optional[str] = Field(default=None, max_length=200)
     years_of_experience: Optional[int] = None
     languages: Optional[List[str]] = []
-    preferred_title: Optional[str] = None
+    preferred_title: Optional[str] = Field(default=None, max_length=200)
 
 
 class UserUpdate(BaseModel):
-    full_name: Optional[str] = None
-    bio: Optional[str] = None
+    full_name: Optional[str] = Field(default=None, max_length=200)
+    bio: Optional[str] = Field(default=None, max_length=5000)
     skills: Optional[List[str]] = None
-    github_username: Optional[str] = None
-    availability: Optional[str] = None
+    github_username: Optional[str] = Field(default=None, max_length=100)
+    availability: Optional[str] = Field(default=None, max_length=200)
     years_of_experience: Optional[int] = None
     languages: Optional[List[str]] = None
-    preferred_title: Optional[str] = None
+    preferred_title: Optional[str] = Field(default=None, max_length=200)
 
 
 class UserOut(BaseModel):
@@ -55,25 +55,25 @@ class UserOut(BaseModel):
 # ---------- Project ----------
 
 class ProjectCreate(BaseModel):
-    title: str
-    description: Optional[str] = None
+    title: str = Field(max_length=200)
+    description: Optional[str] = Field(default=None, max_length=5000)
     tech_stack: Optional[List[str]] = []
     github_repo_url: Optional[str] = None
     project_type: Optional[ProjectType] = None
     duration_weeks: Optional[int] = None
     weekly_hours: Optional[int] = None
-    timezone: Optional[str] = None
+    timezone: Optional[str] = Field(default=None, max_length=100)
 
 
 class ProjectUpdate(BaseModel):
-    title: Optional[str] = None
-    description: Optional[str] = None
+    title: Optional[str] = Field(default=None, max_length=200)
+    description: Optional[str] = Field(default=None, max_length=5000)
     tech_stack: Optional[List[str]] = None
     github_repo_url: Optional[str] = None
     project_type: Optional[ProjectType] = None
     duration_weeks: Optional[int] = None
     weekly_hours: Optional[int] = None
-    timezone: Optional[str] = None
+    timezone: Optional[str] = Field(default=None, max_length=100)
 
 
 class ProjectOut(BaseModel):
@@ -100,14 +100,14 @@ class ProjectOut(BaseModel):
 
 
 class ProjectCompleteRequest(BaseModel):
-    summary: Optional[str] = None
+    summary: Optional[str] = Field(default=None, max_length=5000)
 
 
 # ---------- Position ----------
 
 class PositionCreate(BaseModel):
-    role_name: str
-    description: Optional[str] = None
+    role_name: str = Field(max_length=200)
+    description: Optional[str] = Field(default=None, max_length=5000)
 
 
 class PositionOut(BaseModel):
@@ -156,11 +156,11 @@ class TeamMemberOut(BaseModel):
 # ---------- Work Experience ----------
 
 class WorkExperienceCreate(BaseModel):
-    company: str
-    role: str
-    start_date: str
-    end_date: Optional[str] = None
-    description: Optional[str] = None
+    company: str = Field(max_length=200)
+    role: str = Field(max_length=200)
+    start_date: str = Field(max_length=50)
+    end_date: Optional[str] = Field(default=None, max_length=50)
+    description: Optional[str] = Field(default=None, max_length=5000)
 
 
 class WorkExperienceOut(BaseModel):
@@ -180,11 +180,11 @@ class WorkExperienceOut(BaseModel):
 # ---------- Education ----------
 
 class EducationCreate(BaseModel):
-    school: str
-    degree: str
-    start_date: str
-    end_date: Optional[str] = None
-    description: Optional[str] = None
+    school: str = Field(max_length=200)
+    degree: str = Field(max_length=200)
+    start_date: str = Field(max_length=50)
+    end_date: Optional[str] = Field(default=None, max_length=50)
+    description: Optional[str] = Field(default=None, max_length=5000)
 
 
 class EducationOut(BaseModel):
@@ -204,7 +204,7 @@ class EducationOut(BaseModel):
 # ---------- Project Comment ----------
 
 class ProjectCommentCreate(BaseModel):
-    content: str
+    content: str = Field(max_length=2000)
 
 
 class ProjectCommentOut(BaseModel):
@@ -226,7 +226,7 @@ class FeedbackCreate(BaseModel):
     communication: int = Field(ge=1, le=5)
     reliability: int = Field(ge=1, le=5)
     code_quality: int = Field(ge=1, le=5)
-    comment: Optional[str] = None
+    comment: Optional[str] = Field(default=None, max_length=2000)
 
 
 class FeedbackOut(BaseModel):
