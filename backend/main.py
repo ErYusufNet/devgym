@@ -76,11 +76,6 @@ def create_user(user: schemas.UserCreate, db: Session = Depends(get_db)):
     return new_user
 
 
-@app.get("/users", response_model=list[schemas.UserOut])
-def list_users(db: Session = Depends(get_db)):
-    return db.query(models.User).all()
-
-
 @app.get("/users/search")
 def search_users(
     skills: Optional[str] = None,
@@ -634,7 +629,8 @@ def create_discord_room(
         channel_id = discord_utils.create_team_channel(channel_name, [u.discord_id for u in connected_users])
         invite_url = discord_utils.create_invite(channel_id)
     except Exception as exc:
-        raise HTTPException(status_code=502, detail=f"Could not create Discord channel: {exc}")
+        print(f"[create_discord_room] Failed to create Discord channel: {exc}")
+        raise HTTPException(status_code=502, detail="Could not create Discord channel. Please try again later.")
 
     project.discord_channel_id = channel_id
     project.discord_invite_url = invite_url
@@ -668,7 +664,8 @@ def create_project_repo(
     try:
         repo = github_utils.create_repo(current_user.github_access_token, repo_name, project.description)
     except Exception as exc:
-        raise HTTPException(status_code=502, detail=f"Could not create GitHub repo: {exc}")
+        print(f"[create_project_repo] Failed to create GitHub repo: {exc}")
+        raise HTTPException(status_code=502, detail="Could not create GitHub repo. Please try again later.")
 
     project.github_repo_url = repo["html_url"]
     db.commit()
@@ -833,11 +830,6 @@ def create_application(
             print(f"[create_application] Failed to send new-application email to {owner.email}: {exc}")
 
     return new_application
-
-
-@app.get("/applications", response_model=list[schemas.ApplicationOut])
-def list_applications(db: Session = Depends(get_db)):
-    return db.query(models.Application).all()
 
 
 @app.post("/applications/{application_id}/accept")
@@ -1224,7 +1216,8 @@ def discord_callback(
         access_token = discord_utils.exchange_code_for_token(payload.code)
         discord_id = discord_utils.get_discord_user_id(access_token)
     except Exception as exc:
-        raise HTTPException(status_code=400, detail=f"Could not connect Discord account: {exc}")
+        print(f"[discord_callback] Failed to connect Discord account: {exc}")
+        raise HTTPException(status_code=400, detail="Could not connect Discord account. Please try again.")
 
     current_user.discord_id = discord_id
     db.commit()
@@ -1249,7 +1242,8 @@ def github_callback(
         access_token = github_utils.exchange_code_for_token(payload.code)
         github_username = github_utils.get_github_username(access_token)
     except Exception as exc:
-        raise HTTPException(status_code=400, detail=f"Could not connect GitHub account: {exc}")
+        print(f"[github_callback] Failed to connect GitHub account: {exc}")
+        raise HTTPException(status_code=400, detail="Could not connect GitHub account. Please try again.")
 
     current_user.github_username = github_username
     current_user.github_access_token = access_token
