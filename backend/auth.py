@@ -1,12 +1,26 @@
+import os
 from datetime import datetime, timedelta
 from typing import Optional
 
+from dotenv import load_dotenv
 from jose import jwt
 from passlib.context import CryptContext
 
-# NOT: Bu gizli anahtar sadece geliştirme (development) içindir.
-# İleride .env dosyasına taşıyacağız, asla GitHub'a gerçek anahtarla push etmeyeceğiz.
-SECRET_KEY = "devgym-dev-secret-key-degistir-bunu-production-da"
+load_dotenv()
+
+# Must come from the environment — never hardcode a real secret here again.
+# A hardcoded value in this file was previously committed to a public GitHub
+# repo, which let anyone forge valid tokens for any user; see SECURITY_AUDIT.md
+# finding #1. Fail fast at import time rather than silently running with a
+# missing/None key, since jose would otherwise raise a much more confusing error.
+SECRET_KEY = os.getenv("JWT_SECRET_KEY")
+if not SECRET_KEY:
+    raise RuntimeError(
+        "JWT_SECRET_KEY is not set. Generate one with: "
+        "python -c \"import secrets; print(secrets.token_hex(32))\" "
+        "and add it to backend/.env (and to Railway's environment variables in production)."
+    )
+
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24  # 1 gün
 
@@ -37,7 +51,14 @@ def decode_access_token(token: str) -> Optional[dict]:
 
 # Separate secret from the login access token above, so a leaked/expired
 # password-reset token can never be replayed as a normal auth token (or vice versa).
-PASSWORD_RESET_SECRET_KEY = "devgym-dev-password-reset-secret-key-degistir-bunu-production-da"
+PASSWORD_RESET_SECRET_KEY = os.getenv("JWT_PASSWORD_RESET_SECRET_KEY")
+if not PASSWORD_RESET_SECRET_KEY:
+    raise RuntimeError(
+        "JWT_PASSWORD_RESET_SECRET_KEY is not set. Generate one with: "
+        "python -c \"import secrets; print(secrets.token_hex(32))\" "
+        "and add it to backend/.env (and to Railway's environment variables in production)."
+    )
+
 PASSWORD_RESET_ALGORITHM = "HS256"
 PASSWORD_RESET_EXPIRE_MINUTES = 30
 
