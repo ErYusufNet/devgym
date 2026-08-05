@@ -1,12 +1,27 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { API_URL } from "@/lib/api";
+
+const ADMIN_EMAIL = "ernordbusiness@hotmail.com";
 
 export default function Navbar() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
 
   useEffect(() => {
-    setIsLoggedIn(!!localStorage.getItem("devgym_token"));
+    const token = localStorage.getItem("devgym_token");
+    setIsLoggedIn(!!token);
+    if (!token) return;
+
+    // Purely a UI convenience to hide/show the Admin link — the actual gate is
+    // require_admin on the backend, so there's nothing sensitive being decided here.
+    const userId = localStorage.getItem("devgym_user_id");
+    if (!userId) return;
+    fetch(`${API_URL}/users/${userId}/profile`)
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => setIsAdmin(data?.email === ADMIN_EMAIL))
+      .catch(() => {});
   }, []);
 
   function handleLogout() {
@@ -44,6 +59,11 @@ export default function Navbar() {
               <a href="/profile" className="px-3 py-1.5 rounded-lg text-secondary hover:text-navy hover:bg-card transition-colors duration-200">
                 Profile
               </a>
+              {isAdmin && (
+                <a href="/admin" className="px-3 py-1.5 rounded-lg text-secondary hover:text-navy hover:bg-card transition-colors duration-200">
+                  Admin
+                </a>
+              )}
               <button
                 onClick={handleLogout}
                 className="px-3 py-1.5 rounded-lg border border-slate-300 text-navy hover:bg-card transition-colors duration-200"

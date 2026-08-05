@@ -4,6 +4,7 @@ from typing import Optional
 
 from fastapi import FastAPI, Depends, HTTPException, Header, Request
 from fastapi.middleware.cors import CORSMiddleware
+from sqlalchemy import or_
 from sqlalchemy.orm import Session
 from datetime import datetime, timedelta
 from slowapi import Limiter, _rate_limit_exceeded_handler
@@ -69,6 +70,15 @@ def require_approved_recruiter(current_user: models.User) -> None:
             status_code=403,
             detail="This feature is only available to approved recruiter accounts.",
         )
+
+
+def require_admin(current_user: models.User = Depends(get_current_user)) -> models.User:
+    """FastAPI dependency gating every /admin/* route. Single hardcoded email for
+    now — if this ever needs more than one admin, swap the check for an `is_admin`
+    boolean column on User instead of growing a list of emails here."""
+    if current_user.email != ADMIN_EMAIL:
+        raise HTTPException(status_code=403, detail="Not authorized")
+    return current_user
 
 
 @app.get("/")
@@ -334,15 +344,68 @@ def send_contact_request(
     return {"detail": "Contact request sent"}
 
 
+# ---------- Admin ----------
+
+def _delete_project_dependents(db: Session, project_id: str) -> None:
+    """Deletes everything that references a project (positions and their
+    applications, team memberships, comments, feedback) without touching the
+    project row itself or committing — shared by the owner-facing DELETE
+    /projects/{id} (further down) and the admin routes below, which both then
+    delete the project row and commit on their own."""
+    position_ids = [
+        p.id for p in db.query(models.Position).filter(models.Position.project_id == project_id).all()
+    ]
+    db.query(models.Application).filter(models.Application.position_id.in_(position_ids)).delete(synchronize_session=False)
+    db.query(models.TeamMember).filter(models.TeamMember.project_id == project_id).delete(synchronize_session=False)
+    db.query(models.Position).filter(models.Position.project_id == project_id).delete(synchronize_session=False)
+    db.query(models.ProjectComment).filter(models.ProjectComment.project_id == project_id).delete(synchronize_session=False)
+    db.query(models.Feedback).filter(models.Feedback.project_id == project_id).delete(synchronize_session=False)
+
+
+@app.get("/admin/stats")
+def get_admin_stats(
+    current_user: models.User = Depends(require_admin),
+    db: Session = Depends(get_db),
+):
+    return {
+        "total_users": db.query(models.User).count(),
+        "total_projects": db.query(models.Project).count(),
+        "active_projects": db.query(models.Project).filter(models.Project.status == models.ProjectStatus.active).count(),
+        "completed_projects": db.query(models.Project).filter(models.Project.status == models.ProjectStatus.completed).count(),
+        "pending_recruiters": db.query(models.User).filter(
+            models.User.account_type == models.AccountType.recruiter,
+            models.User.recruiter_approved.is_(False),
+        ).count(),
+    }
+
+
+@app.get("/admin/pending-recruiters")
+def list_pending_recruiters(
+    current_user: models.User = Depends(require_admin),
+    db: Session = Depends(get_db),
+):
+    recruiters = db.query(models.User).filter(
+        models.User.account_type == models.AccountType.recruiter,
+        models.User.recruiter_approved.is_(False),
+    ).order_by(models.User.created_at.asc()).all()
+    return [
+        {
+            "id": r.id,
+            "email": r.email,
+            "full_name": r.full_name,
+            "company_name": r.company_name,
+            "created_at": r.created_at,
+        }
+        for r in recruiters
+    ]
+
+
 @app.post("/admin/approve-recruiter/{user_id}")
 def approve_recruiter(
     user_id: str,
-    current_user: models.User = Depends(get_current_user),
+    current_user: models.User = Depends(require_admin),
     db: Session = Depends(get_db),
 ):
-    if current_user.email != ADMIN_EMAIL:
-        raise HTTPException(status_code=403, detail="Not authorized")
-
     user = db.query(models.User).filter(models.User.id == user_id).first()
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
@@ -353,6 +416,131 @@ def approve_recruiter(
     db.commit()
     db.refresh(user)
     return {"detail": "Recruiter approved", "user_id": user.id}
+
+
+@app.post("/admin/reject-recruiter/{user_id}")
+def reject_recruiter(
+    user_id: str,
+    current_user: models.User = Depends(require_admin),
+    db: Session = Depends(get_db),
+):
+    user = db.query(models.User).filter(models.User.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    if user.account_type != models.AccountType.recruiter:
+        raise HTTPException(status_code=400, detail="This user is not a recruiter account")
+
+    # No separate "rejected" state — a rejected recruiter application just becomes
+    # a normal developer account. Simpler than adding a third status, and it means
+    # the person isn't locked out of the platform entirely, just out of recruiting.
+    user.account_type = models.AccountType.developer
+    user.recruiter_approved = False
+    user.company_name = None
+    db.commit()
+    db.refresh(user)
+    return {"detail": "Recruiter application rejected", "user_id": user.id}
+
+
+@app.get("/admin/users")
+def list_all_users(
+    search: Optional[str] = None,
+    current_user: models.User = Depends(require_admin),
+    db: Session = Depends(get_db),
+):
+    query = db.query(models.User)
+    if search:
+        query = query.filter(models.User.email.ilike(f"%{search}%"))
+    users = query.order_by(models.User.created_at.desc()).all()
+    return [
+        {
+            "id": u.id,
+            "email": u.email,
+            "full_name": u.full_name,
+            "account_type": u.account_type,
+            "recruiter_approved": u.recruiter_approved,
+            "company_name": u.company_name,
+            "plan": u.plan,
+            "created_at": u.created_at,
+        }
+        for u in users
+    ]
+
+
+@app.delete("/admin/users/{user_id}")
+def admin_delete_user(
+    user_id: str,
+    current_user: models.User = Depends(require_admin),
+    db: Session = Depends(get_db),
+):
+    if user_id == current_user.id:
+        raise HTTPException(status_code=400, detail="You cannot delete your own admin account")
+
+    user = db.query(models.User).filter(models.User.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    # Every project this user owns goes too, with that project's own dependents.
+    owned_project_ids = [p.id for p in db.query(models.Project).filter(models.Project.owner_id == user_id).all()]
+    for project_id in owned_project_ids:
+        _delete_project_dependents(db, project_id)
+    if owned_project_ids:
+        db.query(models.Project).filter(models.Project.id.in_(owned_project_ids)).delete(synchronize_session=False)
+
+    # And the user's own footprint elsewhere: applications/memberships on other
+    # people's projects, comments they left, work history, and feedback they gave
+    # or received.
+    db.query(models.Application).filter(models.Application.user_id == user_id).delete(synchronize_session=False)
+    db.query(models.TeamMember).filter(models.TeamMember.user_id == user_id).delete(synchronize_session=False)
+    db.query(models.ProjectComment).filter(models.ProjectComment.user_id == user_id).delete(synchronize_session=False)
+    db.query(models.WorkExperience).filter(models.WorkExperience.user_id == user_id).delete(synchronize_session=False)
+    db.query(models.Education).filter(models.Education.user_id == user_id).delete(synchronize_session=False)
+    db.query(models.Feedback).filter(
+        or_(models.Feedback.from_user_id == user_id, models.Feedback.to_user_id == user_id)
+    ).delete(synchronize_session=False)
+
+    db.delete(user)
+    db.commit()
+    return {"ok": True}
+
+
+@app.get("/admin/projects")
+def list_all_projects(
+    current_user: models.User = Depends(require_admin),
+    db: Session = Depends(get_db),
+):
+    projects = db.query(models.Project).order_by(models.Project.created_at.desc()).all()
+    owners = {
+        u.id: u for u in db.query(models.User).filter(
+            models.User.id.in_({p.owner_id for p in projects})
+        ).all()
+    }
+    return [
+        {
+            "id": p.id,
+            "title": p.title,
+            "status": p.status,
+            "owner_id": p.owner_id,
+            "owner_email": owners[p.owner_id].email if p.owner_id in owners else None,
+            "created_at": p.created_at,
+        }
+        for p in projects
+    ]
+
+
+@app.delete("/admin/projects/{project_id}")
+def admin_delete_project(
+    project_id: str,
+    current_user: models.User = Depends(require_admin),
+    db: Session = Depends(get_db),
+):
+    project = db.query(models.Project).filter(models.Project.id == project_id).first()
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+
+    _delete_project_dependents(db, project_id)
+    db.delete(project)
+    db.commit()
+    return {"ok": True}
 
 
 @app.get("/users/{user_id}/activity")
@@ -705,15 +893,7 @@ def delete_project(
     if project.owner_id != current_user.id:
         raise HTTPException(status_code=403, detail="Only the project owner can delete this project")
 
-    position_ids = [
-        p.id for p in db.query(models.Position).filter(models.Position.project_id == project_id).all()
-    ]
-
-    db.query(models.Application).filter(models.Application.position_id.in_(position_ids)).delete(synchronize_session=False)
-    db.query(models.TeamMember).filter(models.TeamMember.project_id == project_id).delete(synchronize_session=False)
-    db.query(models.Position).filter(models.Position.project_id == project_id).delete(synchronize_session=False)
-    db.query(models.ProjectComment).filter(models.ProjectComment.project_id == project_id).delete(synchronize_session=False)
-    db.query(models.Feedback).filter(models.Feedback.project_id == project_id).delete(synchronize_session=False)
+    _delete_project_dependents(db, project_id)
     db.delete(project)
     db.commit()
     return {"ok": True}
