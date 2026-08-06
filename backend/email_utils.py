@@ -73,6 +73,18 @@ def send_application_accepted_email(to_email: str, applicant_name: str, project_
     send_email(to_email, f"You've been accepted! Welcome to {project_title}", body)
 
 
+def send_member_removed_email(to_email: str, member_name: str, project_title: str) -> None:
+    body = (
+        f"Hi {member_name},\n\n"
+        f"You've been removed from \"{project_title}\" by the project owner. "
+        "Your position on the team has been reopened for someone else.\n\n"
+        f"You can browse other open projects here:\n{FRONTEND_URL}/discover\n\n"
+        "- Ernord"
+    )
+
+    send_email(to_email, f"You've been removed from {project_title}", body)
+
+
 def send_recruiter_contact_email(to_email: str, developer_name: str, company_name: str, profile_url: str) -> None:
     """Notifies a developer that an approved recruiter wants to get in touch. The
     developer's real email is the `to_email` here (never handed back to the

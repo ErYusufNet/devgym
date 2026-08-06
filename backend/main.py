@@ -1266,9 +1266,33 @@ def reject_application(
 
 # ---------- Team Members ----------
 
-@app.get("/projects/{project_id}/team", response_model=list[schemas.TeamMemberOut])
+@app.get("/projects/{project_id}/team")
 def list_team_members(project_id: str, db: Session = Depends(get_db)):
-    return db.query(models.TeamMember).filter(models.TeamMember.project_id == project_id).all()
+    """Public — team membership (who's on a project) is treated the same as the
+    rest of a project's page: visible to anyone, no per-member email exposed here
+    (unlike the owner-gated /applications endpoint), just enough to render a name
+    and role."""
+    members = db.query(models.TeamMember).filter(models.TeamMember.project_id == project_id).all()
+
+    user_ids = {m.user_id for m in members}
+    users = {u.id: u for u in db.query(models.User).filter(models.User.id.in_(user_ids)).all()}
+
+    position_ids = {m.position_id for m in members}
+    positions = {p.id: p for p in db.query(models.Position).filter(models.Position.id.in_(position_ids)).all()}
+
+    return [
+        {
+            "id": m.id,
+            "project_id": m.project_id,
+            "user_id": m.user_id,
+            "position_id": m.position_id,
+            "joined_at": m.joined_at,
+            "left_at": m.left_at,
+            "full_name": users[m.user_id].full_name if m.user_id in users else None,
+            "role_name": positions[m.position_id].role_name if m.position_id in positions else None,
+        }
+        for m in members
+    ]
 
 
 @app.post("/team_members/{member_id}/leave", response_model=schemas.TeamMemberOut)
@@ -1292,6 +1316,47 @@ def leave_team(
 
     db.commit()
     db.refresh(member)
+    return member
+
+
+@app.post("/team_members/{member_id}/remove", response_model=schemas.TeamMemberOut)
+def remove_team_member(
+    member_id: str,
+    current_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Owner-initiated equivalent of leave_team — same handoff mechanic (reopens
+    the vacated position), just triggered by the project owner instead of the
+    member themselves."""
+    member = db.query(models.TeamMember).filter(models.TeamMember.id == member_id).first()
+    if not member:
+        raise HTTPException(status_code=404, detail="Team membership not found")
+
+    project = db.query(models.Project).filter(models.Project.id == member.project_id).first()
+    if not project or project.owner_id != current_user.id:
+        raise HTTPException(status_code=403, detail="Only the project owner can remove a team member")
+    if member.left_at is not None:
+        raise HTTPException(status_code=400, detail="This member has already left")
+
+    member.left_at = datetime.utcnow()
+
+    position = db.query(models.Position).filter(models.Position.id == member.position_id).first()
+    position.status = models.PositionStatus.open  # handoff mechanic triggers here
+
+    db.commit()
+    db.refresh(member)
+
+    removed_user = db.query(models.User).filter(models.User.id == member.user_id).first()
+    if removed_user:
+        try:
+            email_utils.send_member_removed_email(
+                removed_user.email,
+                removed_user.full_name or removed_user.email,
+                project.title,
+            )
+        except Exception as exc:
+            print(f"[remove_team_member] Failed to send removal email to {removed_user.email}: {exc}")
+
     return member
 
 

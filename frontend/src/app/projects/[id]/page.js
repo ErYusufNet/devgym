@@ -36,6 +36,9 @@ export default function ProjectDetail() {
   const [creatingGithubRepo, setCreatingGithubRepo] = useState(false);
   const [githubRepoError, setGithubRepoError] = useState("");
   const [githubRepoResult, setGithubRepoResult] = useState(null);
+  const [team, setTeam] = useState([]);
+  const [membershipTarget, setMembershipTarget] = useState(null); // { type: "leave" | "remove", memberId, label }
+  const [leavingOrRemoving, setLeavingOrRemoving] = useState(false);
 
   const currentUserId = typeof window !== "undefined" ? localStorage.getItem("devgym_user_id") : null;
   const isLoggedIn = typeof window !== "undefined" ? !!localStorage.getItem("devgym_token") : false;
@@ -46,9 +49,10 @@ export default function ProjectDetail() {
 
   async function fetchData() {
     try {
-      const [projectRes, positionsRes] = await Promise.all([
+      const [projectRes, positionsRes, teamRes] = await Promise.all([
         fetch(`${API_URL}/projects/${id}`),
         fetch(`${API_URL}/projects/${id}/positions`),
+        fetch(`${API_URL}/projects/${id}/team`),
       ]);
 
       if (!projectRes.ok) throw new Error("Project not found");
@@ -58,6 +62,7 @@ export default function ProjectDetail() {
 
       setProject(projectData);
       setPositions(positionsData);
+      setTeam(teamRes.ok ? await teamRes.json() : []);
 
       if (projectData.status === "completed") {
         const commentsRes = await fetch(`${API_URL}/projects/${id}/comments`);
@@ -221,6 +226,36 @@ export default function ProjectDetail() {
     }
   }
 
+  async function handleConfirmMembershipAction() {
+    if (!membershipTarget) return;
+    setLeavingOrRemoving(true);
+    setMessage("");
+
+    try {
+      const path = membershipTarget.type === "leave" ? "leave" : "remove";
+      const res = await authFetch(`${API_URL}/team_members/${membershipTarget.memberId}/${path}`, {
+        method: "POST",
+      });
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.detail || "Could not update team membership");
+      }
+
+      setMessage(
+        membershipTarget.type === "leave"
+          ? "You've left this project. The position has reopened."
+          : `${membershipTarget.label} has been removed. Their position has reopened.`
+      );
+      setMembershipTarget(null);
+      await fetchData(); // refreshes positions (now open again) and the team list
+    } catch (err) {
+      setMessage(err.message);
+      setMembershipTarget(null);
+    } finally {
+      setLeavingOrRemoving(false);
+    }
+  }
+
   if (loading) {
     return <p className="text-center text-secondary py-20">Loading...</p>;
   }
@@ -234,6 +269,10 @@ export default function ProjectDetail() {
   const canCreateDiscordRoom =
     currentUserId === project.owner_id && (allPositionsFilled || project.status === "completed");
   const isOwner = currentUserId === project.owner_id;
+  const activeTeam = team.filter((m) => !m.left_at);
+  const myMembership = currentUserId
+    ? activeTeam.find((m) => m.user_id === currentUserId)
+    : null;
 
   return (
     <div className="min-h-screen bg-white px-6 py-12">
@@ -273,6 +312,17 @@ export default function ProjectDetail() {
               className="mb-4 px-3 py-1.5 rounded-lg border border-slate-300 text-sm text-navy hover:bg-surface"
             >
               Mark as completed
+            </button>
+          )}
+
+          {!isOwner && myMembership && (
+            <button
+              onClick={() =>
+                setMembershipTarget({ type: "leave", memberId: myMembership.id, label: "you" })
+              }
+              className="mb-4 px-3 py-1.5 rounded-lg border border-red-300 text-sm text-red-600 hover:bg-red-50"
+            >
+              Leave this project
             </button>
           )}
 
@@ -425,6 +475,46 @@ export default function ProjectDetail() {
           </div>
         </ScrollReveal>
 
+        {isOwner && (
+          <ScrollReveal className="mt-8">
+            <div className="flex items-center gap-3 mb-4">
+              <IconBadge icon={IconUsers} color="blue" size="sm" />
+              <h2 className="text-xl font-semibold text-navy">Team</h2>
+            </div>
+
+            <div className="flex flex-col gap-3">
+              {activeTeam.map((member, i) => (
+                <SlideIn key={member.id} index={i}>
+                  <div className="border border-card-border rounded-xl p-4 bg-card shadow-sm flex items-center justify-between">
+                    <div>
+                      <p className="font-medium text-navy">{member.full_name || "Unnamed member"}</p>
+                      {member.role_name && (
+                        <p className="text-sm text-secondary">{member.role_name}</p>
+                      )}
+                    </div>
+                    <button
+                      onClick={() =>
+                        setMembershipTarget({
+                          type: "remove",
+                          memberId: member.id,
+                          label: member.full_name || "This member",
+                        })
+                      }
+                      className="text-xs px-3 py-1.5 rounded-md border border-red-300 text-red-600 hover:bg-red-50 font-medium transition-colors shrink-0"
+                    >
+                      Remove
+                    </button>
+                  </div>
+                </SlideIn>
+              ))}
+
+              {activeTeam.length === 0 && (
+                <p className="text-secondary text-sm">No active team members yet.</p>
+              )}
+            </div>
+          </ScrollReveal>
+        )}
+
         {project.status === "completed" && pendingTeammates.length > 0 && (
           <ScrollReveal className="mt-8">
             <div className="flex items-center gap-3 mb-4">
@@ -507,6 +597,48 @@ export default function ProjectDetail() {
           onConfirm={handleComplete}
           submitting={completing}
         />
+      )}
+
+      {membershipTarget && (
+        <div
+          className="fixed inset-0 bg-navy/40 flex items-center justify-center z-50 px-6"
+          onClick={() => !leavingOrRemoving && setMembershipTarget(null)}
+        >
+          <div className="bg-white rounded-xl shadow-lg max-w-sm w-full p-6" onClick={(e) => e.stopPropagation()}>
+            <h3 className="text-lg font-semibold text-navy mb-2">
+              {membershipTarget.type === "leave"
+                ? "Leave this project?"
+                : `Remove ${membershipTarget.label}?`}
+            </h3>
+            <p className="text-sm text-secondary mb-6">
+              {membershipTarget.type === "leave"
+                ? "Are you sure you want to leave this project? Your position will reopen for someone else."
+                : "This will remove them from the team and reopen their position for someone else."}
+            </p>
+            <div className="flex justify-end gap-3">
+              <button
+                onClick={() => setMembershipTarget(null)}
+                disabled={leavingOrRemoving}
+                className="px-4 py-2 text-sm text-secondary hover:text-navy disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleConfirmMembershipAction}
+                disabled={leavingOrRemoving}
+                className="px-4 py-2 text-sm bg-red-600 text-white rounded-lg font-medium hover:bg-red-700 disabled:opacity-50"
+              >
+                {leavingOrRemoving
+                  ? membershipTarget.type === "leave"
+                    ? "Leaving..."
+                    : "Removing..."
+                  : membershipTarget.type === "leave"
+                  ? "Leave"
+                  : "Remove"}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
