@@ -1615,6 +1615,20 @@ def reset_password(payload: schemas.ResetPasswordRequest, db: Session = Depends(
     return {"message": "Password has been reset successfully"}
 
 
+@app.post("/users/me/change-password")
+def change_password(
+    payload: schemas.PasswordChange,
+    current_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    if not auth.verify_password(payload.current_password, current_user.password_hash):
+        raise HTTPException(status_code=400, detail="Current password is incorrect")
+
+    current_user.password_hash = auth.hash_password(payload.new_password)
+    db.commit()
+    return {"message": "Password updated successfully"}
+
+
 # ---------- OAuth state (CSRF protection for account-linking flows) ----------
 #
 # Discord/GitHub "connect" redirects the browser away from ErNord entirely, so the

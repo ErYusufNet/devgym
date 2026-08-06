@@ -262,6 +262,11 @@ class ResetPasswordRequest(BaseModel):
     new_password: str
 
 
+class PasswordChange(BaseModel):
+    current_password: str
+    new_password: str
+
+
 # ---------- Discord ----------
 
 class DiscordCallbackRequest(BaseModel):

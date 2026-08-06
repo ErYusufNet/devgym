@@ -8,6 +8,7 @@ import IconBadge from "@/components/IconBadge";
 import CompletionRateRing from "@/components/CompletionRateRing";
 import FillBar from "@/components/FillBar";
 import ReputationSummary from "@/components/ReputationSummary";
+import ChangePasswordForm from "@/components/ChangePasswordForm";
 import FloatingTechLogosFixed from "@/components/FloatingTechLogosFixed";
 import { StarRatingDisplay } from "@/components/StarRating";
 import { IconBriefcase, IconSchool, IconCode, IconFolder } from "@/components/icons/TablerIcons";
@@ -26,6 +27,7 @@ export default function ProfileView({ userId: userIdProp, editable = false }) {
   const [discordError, setDiscordError] = useState("");
   const [connectingGithub, setConnectingGithub] = useState(false);
   const [githubError, setGithubError] = useState("");
+  const [showPasswordForm, setShowPasswordForm] = useState(false);
 
   useEffect(() => {
     async function loadProfile() {
@@ -145,14 +147,29 @@ export default function ProfileView({ userId: userIdProp, editable = false }) {
           </div>
 
           {editable && (
-            <a
-              href="/profile/edit"
-              className="px-3 py-2 text-sm border border-slate-300 rounded-lg text-navy hover:bg-surface whitespace-nowrap"
-            >
-              Edit profile
-            </a>
+            <div className="flex items-center gap-2">
+              <a
+                href="/profile/edit"
+                className="px-3 py-2 text-sm border border-slate-300 rounded-lg text-navy hover:bg-surface whitespace-nowrap"
+              >
+                Edit profile
+              </a>
+              <button
+                type="button"
+                onClick={() => setShowPasswordForm((open) => !open)}
+                className="px-3 py-2 text-sm border border-slate-300 rounded-lg text-navy hover:bg-surface whitespace-nowrap"
+              >
+                {showPasswordForm ? "Close" : "Change password"}
+              </button>
+            </div>
           )}
         </ScrollReveal>
+
+        {editable && showPasswordForm && (
+          <ScrollReveal className="mb-8">
+            <ChangePasswordForm onClose={() => setShowPasswordForm(false)} />
+          </ScrollReveal>
+        )}
 
         {editable && completionPct < 100 && (
           <ScrollReveal className="mb-8">
