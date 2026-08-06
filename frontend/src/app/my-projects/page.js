@@ -14,6 +14,8 @@ import { API_URL } from "@/lib/api";
 export default function MyProjects() {
   const [projects, setProjects] = useState([]);
   const [applicationsByProject, setApplicationsByProject] = useState({});
+  const [teamByProject, setTeamByProject] = useState({});
+  const [joinedProjects, setJoinedProjects] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [actionMessage, setActionMessage] = useState("");
@@ -21,6 +23,8 @@ export default function MyProjects() {
   const [deleting, setDeleting] = useState(false);
   const [completeTarget, setCompleteTarget] = useState(null);
   const [completing, setCompleting] = useState(false);
+  const [removeTarget, setRemoveTarget] = useState(null); // { id, label }
+  const [removing, setRemoving] = useState(false);
 
   useEffect(() => {
     loadMyProjects();
@@ -41,15 +45,51 @@ export default function MyProjects() {
       setProjects(myProjects);
 
       const appsMap = {};
+      const teamMap = {};
       for (const project of myProjects) {
         const appsRes = await authFetch(`${API_URL}/projects/${project.id}/applications`);
         appsMap[project.id] = await appsRes.json();
+
+        const teamRes = await fetch(`${API_URL}/projects/${project.id}/team`);
+        const teamData = teamRes.ok ? await teamRes.json() : [];
+        teamMap[project.id] = teamData.filter((m) => !m.left_at);
       }
       setApplicationsByProject(appsMap);
+      setTeamByProject(teamMap);
+
+      const profileRes = await fetch(`${API_URL}/users/${userId}/profile`);
+      if (profileRes.ok) {
+        const profile = await profileRes.json();
+        setJoinedProjects(profile.joined_projects || []);
+      }
     } catch (err) {
       setError("Could not load your projects.");
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function handleConfirmRemoveMember() {
+    if (!removeTarget) return;
+    setRemoving(true);
+    setActionMessage("");
+
+    try {
+      const res = await authFetch(`${API_URL}/team_members/${removeTarget.id}/remove`, {
+        method: "POST",
+      });
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.detail || "Could not remove team member");
+      }
+      setActionMessage(`${removeTarget.label} has been removed. Their position has reopened.`);
+      setRemoveTarget(null);
+      loadMyProjects();
+    } catch (err) {
+      setActionMessage(err.message);
+      setRemoveTarget(null);
+    } finally {
+      setRemoving(false);
     }
   }
 
@@ -167,6 +207,7 @@ export default function MyProjects() {
         <div className="flex flex-col gap-6">
           {projects.map((project, i) => {
             const applications = applicationsByProject[project.id] || [];
+            const team = teamByProject[project.id] || [];
             const meta = getProjectTypeMeta(project.project_type);
             return (
               <ScrollReveal key={project.id} delay={(i % 4) * 80} className="[perspective:600px]">
@@ -252,12 +293,106 @@ export default function MyProjects() {
                       <p className="text-xs text-secondary">No applications yet.</p>
                     )}
                   </div>
+
+                  <div className="border-t border-card-border mt-4 pt-4">
+                    <p className="text-xs font-semibold text-navy mb-2">
+                      Team members {team.length > 0 && `(${team.length})`}
+                    </p>
+                    <div className="flex flex-col gap-2">
+                      {team.map((member) => (
+                        <div
+                          key={member.id}
+                          className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border border-card-border rounded-lg p-3"
+                        >
+                          <div className="min-w-0">
+                            <a
+                              href={`/profile/${member.user_id}`}
+                              className="text-sm font-medium text-navy hover:text-accent hover:underline break-words"
+                            >
+                              {member.full_name || "Unnamed member"}
+                            </a>
+                            {member.role_name && (
+                              <p className="text-xs text-secondary">{member.role_name}</p>
+                            )}
+                          </div>
+                          <button
+                            onClick={() =>
+                              setRemoveTarget({ id: member.id, label: member.full_name || "This member" })
+                            }
+                            className="text-xs px-3 py-2 rounded-md border border-red-300 text-red-600 hover:bg-red-50 font-medium transition-colors shrink-0 self-start sm:self-auto"
+                          >
+                            Remove
+                          </button>
+                        </div>
+                      ))}
+                      {team.length === 0 && (
+                        <p className="text-xs text-secondary">No active team members yet.</p>
+                      )}
+                    </div>
+                  </div>
                 </div>
               </ScrollReveal>
             );
           })}
         </div>
+
+        {joinedProjects.length > 0 && (
+          <ScrollReveal className="flex items-center gap-3 mb-8 mt-14">
+            <h2 className="text-2xl font-semibold text-navy">Projects I&apos;ve joined</h2>
+            <span className="px-2.5 py-1 rounded-full bg-surface text-secondary text-xs font-medium">
+              {joinedProjects.length} {joinedProjects.length === 1 ? "project" : "projects"}
+            </span>
+          </ScrollReveal>
+        )}
+
+        {joinedProjects.length > 0 && (
+          <div className="flex flex-col gap-3">
+            {joinedProjects.map((project) => (
+              <a
+                key={project.id}
+                href={`/projects/${project.id}`}
+                className="border border-card-border rounded-xl px-4 py-3 text-sm text-navy bg-white shadow-sm hover:shadow-md transition-shadow flex flex-wrap items-center justify-between gap-2"
+              >
+                <span className="font-medium break-words">{project.title}</span>
+                <span className="flex items-center gap-3 shrink-0">
+                  <span className="text-xs text-secondary capitalize">{project.status}</span>
+                  <span className="text-xs font-medium text-accent">View project →</span>
+                </span>
+              </a>
+            ))}
+          </div>
+        )}
       </div>
+
+      {removeTarget && (
+        <div
+          className="fixed inset-0 bg-navy/40 flex items-center justify-center z-50 px-6"
+          onClick={() => !removing && setRemoveTarget(null)}
+        >
+          <div className="bg-white rounded-xl shadow-lg max-w-sm w-full p-6" onClick={(e) => e.stopPropagation()}>
+            <h3 className="text-lg font-semibold text-navy mb-2">Remove {removeTarget.label}?</h3>
+            <p className="text-sm text-secondary mb-6">
+              This will remove them from the team and reopen their position for someone else.
+            </p>
+            <div className="flex justify-end gap-3">
+              <button
+                onClick={() => setRemoveTarget(null)}
+                disabled={removing}
+                className="px-4 py-2 text-sm text-secondary hover:text-navy disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleConfirmRemoveMember}
+                disabled={removing}
+                className="px-4 py-2 text-sm bg-red-600 text-white rounded-lg font-medium hover:bg-red-700 disabled:opacity-50"
+              >
+                {removing ? "Removing..." : "Remove"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {deleteTarget && (
         <div
