@@ -4,6 +4,7 @@ from typing import Optional
 
 from fastapi import FastAPI, Depends, HTTPException, Header, Request
 from fastapi.middleware.cors import CORSMiddleware
+from uvicorn.middleware.proxy_headers import ProxyHeadersMiddleware
 from sqlalchemy import or_
 from sqlalchemy.orm import Session
 from datetime import datetime, timedelta
@@ -43,6 +44,12 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Railway terminates TLS at its edge and forwards to this app over plain HTTP,
+# so without this the app thinks every request came in as http:// — any redirect
+# it then issues (e.g. FastAPI's automatic trailing-slash redirect) points back
+# at an insecure http:// URL, which browsers refuse to follow from an https page.
+app.add_middleware(ProxyHeadersMiddleware, trusted_hosts="*")
 
 
 def get_current_user(authorization: str = Header(None), db: Session = Depends(get_db)):
