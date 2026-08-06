@@ -109,6 +109,24 @@ def send_team_complete_email(
     send_email(to_email, f"Your team is complete: {project_title}", body)
 
 
+def send_team_message_email(to_email: str, to_name: str, from_name: str, project_title: str, project_id: str, content: str) -> None:
+    """In-platform messaging between teammates, delivered by email — the fallback
+    for members who haven't connected Discord. Neither person's real email is
+    exposed to the other by this (no Reply-To set), matching team-directory's
+    privacy stance; anyone who wants to reply sends another message through the app."""
+    project_link = f"{FRONTEND_URL}/projects/{project_id}"
+
+    body = (
+        f"Hi {to_name},\n\n"
+        f"{from_name} sent you a message about \"{project_title}\":\n\n"
+        f"{content}\n\n"
+        f"View the project here:\n{project_link}\n\n"
+        "- Ernord"
+    )
+
+    send_email(to_email, f"{from_name} sent you a message about {project_title}", body)
+
+
 def send_member_removed_email(to_email: str, member_name: str, project_title: str) -> None:
     body = (
         f"Hi {member_name},\n\n"

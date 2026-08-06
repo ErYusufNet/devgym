@@ -39,6 +39,11 @@ export default function ProjectDetail() {
   const [team, setTeam] = useState([]);
   const [membershipTarget, setMembershipTarget] = useState(null); // { type: "leave" | "remove", memberId, label }
   const [leavingOrRemoving, setLeavingOrRemoving] = useState(false);
+  const [teamDirectory, setTeamDirectory] = useState([]);
+  const [messagingTo, setMessagingTo] = useState(null); // user_id of the row whose message box is open
+  const [messageText, setMessageText] = useState("");
+  const [sendingMessage, setSendingMessage] = useState(false);
+  const [messageStatus, setMessageStatus] = useState({}); // { [user_id]: "Message sent!" | error }
 
   const currentUserId = typeof window !== "undefined" ? localStorage.getItem("devgym_user_id") : null;
   const isLoggedIn = typeof window !== "undefined" ? !!localStorage.getItem("devgym_token") : false;
@@ -63,6 +68,13 @@ export default function ProjectDetail() {
       setProject(projectData);
       setPositions(positionsData);
       setTeam(teamRes.ok ? await teamRes.json() : []);
+
+      // Only succeeds for an active member of this project — 403s (silently, as an
+      // empty list) for anyone else, which is also how we gate rendering the section.
+      if (localStorage.getItem("devgym_token")) {
+        const directoryRes = await authFetch(`${API_URL}/projects/${id}/team-directory`);
+        setTeamDirectory(directoryRes.ok ? await directoryRes.json() : []);
+      }
 
       if (projectData.status === "completed") {
         const commentsRes = await fetch(`${API_URL}/projects/${id}/comments`);
@@ -253,6 +265,31 @@ export default function ProjectDetail() {
       setMembershipTarget(null);
     } finally {
       setLeavingOrRemoving(false);
+    }
+  }
+
+  async function handleSendMessage(toUserId) {
+    if (!messageText.trim()) return;
+    setSendingMessage(true);
+    setMessageStatus((prev) => ({ ...prev, [toUserId]: "" }));
+
+    try {
+      const res = await authFetch(`${API_URL}/projects/${id}/message/${toUserId}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ content: messageText.trim() }),
+      });
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.detail || "Could not send message");
+      }
+      setMessageStatus((prev) => ({ ...prev, [toUserId]: "Message sent!" }));
+      setMessageText("");
+      setMessagingTo(null);
+    } catch (err) {
+      setMessageStatus((prev) => ({ ...prev, [toUserId]: err.message }));
+    } finally {
+      setSendingMessage(false);
     }
   }
 
@@ -511,6 +548,89 @@ export default function ProjectDetail() {
               {activeTeam.length === 0 && (
                 <p className="text-secondary text-sm">No active team members yet.</p>
               )}
+            </div>
+          </ScrollReveal>
+        )}
+
+        {teamDirectory.length > 0 && (
+          <ScrollReveal className="mt-8">
+            <div className="flex items-center gap-3 mb-4">
+              <IconBadge icon={IconUsers} color="teal" size="sm" />
+              <h2 className="text-xl font-semibold text-navy">Message your team</h2>
+            </div>
+            <p className="text-sm text-secondary mb-4">
+              Not everyone here is on Discord yet — send a teammate a message and we&apos;ll email it to them.
+            </p>
+
+            <div className="flex flex-col gap-3">
+              {teamDirectory
+                .filter((member) => member.user_id !== currentUserId)
+                .map((member) => (
+                  <div key={member.user_id} className="border border-card-border rounded-xl p-4 bg-card shadow-sm">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                      <div className="min-w-0">
+                        <p className="font-medium text-navy break-words">{member.full_name || "Unnamed member"}</p>
+                        {member.role_name && (
+                          <p className="text-sm text-secondary">{member.role_name}</p>
+                        )}
+                        <div className="flex flex-wrap gap-2 mt-1.5">
+                          <span
+                            className={
+                              "text-xs px-2 py-0.5 rounded-md " +
+                              (member.discord_connected
+                                ? "bg-green-600/10 text-green-600"
+                                : "bg-surface text-secondary")
+                            }
+                          >
+                            Discord: {member.discord_connected ? "connected" : "not connected"}
+                          </span>
+                          <span
+                            className={
+                              "text-xs px-2 py-0.5 rounded-md " +
+                              (member.github_connected
+                                ? "bg-green-600/10 text-green-600"
+                                : "bg-surface text-secondary")
+                            }
+                          >
+                            GitHub: {member.github_connected ? "connected" : "not connected"}
+                          </span>
+                        </div>
+                      </div>
+                      <button
+                        onClick={() => {
+                          setMessagingTo(messagingTo === member.user_id ? null : member.user_id);
+                          setMessageText("");
+                        }}
+                        className="text-sm px-3 py-2 rounded-md border border-slate-300 text-navy hover:bg-surface font-medium transition-colors shrink-0 self-start sm:self-auto"
+                      >
+                        {messagingTo === member.user_id ? "Cancel" : "Message"}
+                      </button>
+                    </div>
+
+                    {messagingTo === member.user_id && (
+                      <div className="flex flex-col gap-2 mt-3 pt-3 border-t border-card-border">
+                        <textarea
+                          value={messageText}
+                          onChange={(e) => setMessageText(e.target.value)}
+                          placeholder={`Write a message to ${member.full_name || "this teammate"}...`}
+                          rows={3}
+                          className="px-3 py-2 border border-slate-300 rounded-lg bg-white text-navy text-sm placeholder:text-secondary focus:outline-none focus:border-accent resize-none"
+                        />
+                        <button
+                          onClick={() => handleSendMessage(member.user_id)}
+                          disabled={sendingMessage || !messageText.trim()}
+                          className="self-end text-sm px-4 py-2 bg-accent text-white rounded-lg font-medium hover:bg-accent-hover transition-colors disabled:opacity-50"
+                        >
+                          {sendingMessage ? "Sending..." : "Send"}
+                        </button>
+                      </div>
+                    )}
+
+                    {messageStatus[member.user_id] && (
+                      <p className="text-sm text-navy mt-2">{messageStatus[member.user_id]}</p>
+                    )}
+                  </div>
+                ))}
             </div>
           </ScrollReveal>
         )}

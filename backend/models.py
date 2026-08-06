@@ -147,6 +147,21 @@ class TeamMember(Base):
     left_at = Column(DateTime, nullable=True)
 
 
+class TeamMessage(Base):
+    """A message sent between two active members of the same project team — the
+    in-platform fallback for teammates who haven't connected Discord. Delivered by
+    email (see send_team_message_email); this row is just the record of it, there's
+    no inbox/read-state UI yet."""
+    __tablename__ = "team_messages"
+
+    id = Column(String, primary_key=True, default=generate_uuid)
+    project_id = Column(String, ForeignKey("projects.id"), nullable=False)
+    from_user_id = Column(String, ForeignKey("users.id"), nullable=False)
+    to_user_id = Column(String, ForeignKey("users.id"), nullable=False)
+    content = Column(Text, nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+
 class WorkExperience(Base):
     __tablename__ = "work_experiences"
 

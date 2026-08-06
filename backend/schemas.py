@@ -160,6 +160,10 @@ class TeamMemberOut(BaseModel):
         from_attributes = True
 
 
+class TeamMessageCreate(BaseModel):
+    content: str = Field(max_length=2000)
+
+
 # ---------- Work Experience ----------
 
 class WorkExperienceCreate(BaseModel):

@@ -1420,6 +1420,97 @@ def remove_team_member(
     return member
 
 
+def _active_membership(db: Session, project_id: str, user_id: str):
+    return db.query(models.TeamMember).filter(
+        models.TeamMember.project_id == project_id,
+        models.TeamMember.user_id == user_id,
+        models.TeamMember.left_at.is_(None),
+    ).first()
+
+
+@app.get("/projects/{project_id}/team-directory")
+def get_team_directory(
+    project_id: str,
+    current_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Like GET /projects/{id}/team, but for the team's own use rather than public
+    display: gated to active members only, and adds connection status (so teammates
+    without Discord know to fall back to in-platform messaging) without leaking
+    email or discord_id."""
+    if not _active_membership(db, project_id, current_user.id):
+        raise HTTPException(status_code=403, detail="Only active team members can view the team directory")
+
+    members = db.query(models.TeamMember).filter(
+        models.TeamMember.project_id == project_id,
+        models.TeamMember.left_at.is_(None),
+    ).all()
+
+    user_ids = {m.user_id for m in members}
+    users = {u.id: u for u in db.query(models.User).filter(models.User.id.in_(user_ids)).all()}
+
+    position_ids = {m.position_id for m in members}
+    positions = {p.id: p for p in db.query(models.Position).filter(models.Position.id.in_(position_ids)).all()}
+
+    return [
+        {
+            "user_id": m.user_id,
+            "full_name": users[m.user_id].full_name if m.user_id in users else None,
+            "role_name": positions[m.position_id].role_name if m.position_id in positions else None,
+            "discord_connected": bool(users[m.user_id].discord_id) if m.user_id in users else False,
+            "github_connected": bool(users[m.user_id].github_access_token) if m.user_id in users else False,
+        }
+        for m in members
+        if m.user_id in users
+    ]
+
+
+@app.post("/projects/{project_id}/message/{to_user_id}")
+def send_team_message(
+    project_id: str,
+    to_user_id: str,
+    payload: schemas.TeamMessageCreate,
+    current_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    if to_user_id == current_user.id:
+        raise HTTPException(status_code=400, detail="You can't message yourself")
+
+    if not _active_membership(db, project_id, current_user.id):
+        raise HTTPException(status_code=403, detail="You must be an active member of this project to message its team")
+    if not _active_membership(db, project_id, to_user_id):
+        raise HTTPException(status_code=403, detail="That user is not an active member of this project")
+
+    project = db.query(models.Project).filter(models.Project.id == project_id).first()
+    recipient = db.query(models.User).filter(models.User.id == to_user_id).first()
+    if not project or not recipient:
+        raise HTTPException(status_code=404, detail="Project or recipient not found")
+
+    message = models.TeamMessage(
+        project_id=project_id,
+        from_user_id=current_user.id,
+        to_user_id=to_user_id,
+        content=payload.content,
+    )
+    db.add(message)
+    db.commit()
+    db.refresh(message)
+
+    try:
+        email_utils.send_team_message_email(
+            recipient.email,
+            to_name=recipient.full_name or recipient.email,
+            from_name=current_user.full_name or "A teammate",
+            project_title=project.title,
+            project_id=project.id,
+            content=payload.content,
+        )
+    except Exception as exc:
+        print(f"[send_team_message] Failed to send message email to {recipient.email}: {exc}")
+
+    return {"message": "Message sent"}
+
+
 # ---------- Project Comments ----------
 
 @app.post("/projects/{project_id}/comments", response_model=schemas.ProjectCommentOut)
