@@ -1224,6 +1224,7 @@ def create_application(
 @app.post("/applications/{application_id}/accept")
 def accept_application(
     application_id: str,
+    background_tasks: BackgroundTasks,
     current_user: models.User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
@@ -1258,16 +1259,16 @@ def accept_application(
 
     applicant = db.query(models.User).filter(models.User.id == application.user_id).first()
     if applicant:
-        try:
-            email_utils.send_application_accepted_email(
-                applicant.email,
-                applicant_name=applicant.full_name or applicant.email,
-                project_title=project.title,
-                role_name=position.role_name,
-                project_id=project.id,
-            )
-        except Exception as exc:
-            print(f"[accept_application] Failed to send acceptance email to {applicant.email}: {exc}")
+        background_tasks.add_task(
+            _safe_send_email,
+            "accept_application",
+            email_utils.send_application_accepted_email,
+            applicant.email,
+            applicant_name=applicant.full_name or applicant.email,
+            project_title=project.title,
+            role_name=position.role_name,
+            project_id=project.id,
+        )
 
     # Once this acceptance leaves no open positions, the team is complete — notify
     # everyone currently active on it (including the member just accepted above).
@@ -1297,18 +1298,18 @@ def accept_application(
         for entry in roster:
             recipient = member_users[entry["user_id"]]
             teammates = [t for t in roster if t["user_id"] != entry["user_id"]]
-            try:
-                email_utils.send_team_complete_email(
-                    recipient.email,
-                    member_name=recipient.full_name or recipient.email,
-                    project_title=project.title,
-                    project_id=project.id,
-                    teammates=teammates,
-                    github_repo_url=project.github_repo_url,
-                    discord_invite_url=project.discord_invite_url,
-                )
-            except Exception as exc:
-                print(f"[accept_application] Failed to send team-complete email to {recipient.email}: {exc}")
+            background_tasks.add_task(
+                _safe_send_email,
+                "accept_application",
+                email_utils.send_team_complete_email,
+                recipient.email,
+                member_name=recipient.full_name or recipient.email,
+                project_title=project.title,
+                project_id=project.id,
+                teammates=teammates,
+                github_repo_url=project.github_repo_url,
+                discord_invite_url=project.discord_invite_url,
+            )
 
     github_collaborator_added = False
     applicant_needs_github = False
