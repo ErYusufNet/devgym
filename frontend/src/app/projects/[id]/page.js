@@ -44,6 +44,7 @@ export default function ProjectDetail() {
   const [messageText, setMessageText] = useState("");
   const [sendingMessage, setSendingMessage] = useState(false);
   const [messageStatus, setMessageStatus] = useState({}); // { [user_id]: "Message sent!" | error }
+  const [myApplications, setMyApplications] = useState({}); // { [position_id]: "pending" | "accepted" | "rejected" }
 
   const currentUserId = typeof window !== "undefined" ? localStorage.getItem("devgym_user_id") : null;
   const isLoggedIn = typeof window !== "undefined" ? !!localStorage.getItem("devgym_token") : false;
@@ -74,6 +75,14 @@ export default function ProjectDetail() {
       if (localStorage.getItem("devgym_token")) {
         const directoryRes = await authFetch(`${API_URL}/projects/${id}/team-directory`);
         setTeamDirectory(directoryRes.ok ? await directoryRes.json() : []);
+
+        const myAppsRes = await authFetch(`${API_URL}/projects/${id}/my-applications`);
+        if (myAppsRes.ok) {
+          const myApps = await myAppsRes.json();
+          setMyApplications(
+            Object.fromEntries(myApps.map((a) => [a.position_id, a.status]))
+          );
+        }
       }
 
       if (projectData.status === "completed") {
@@ -230,6 +239,8 @@ export default function ProjectDetail() {
         throw new Error(data.detail || "Could not apply");
       }
 
+      const data = await res.json();
+      setMyApplications((prev) => ({ ...prev, [positionId]: data.status }));
       setMessage("Application sent!");
     } catch (err) {
       setMessage(err.message);
@@ -489,19 +500,43 @@ export default function ProjectDetail() {
                     )}
                   </div>
 
-                  {position.status === "open" ? (
-                    <button
-                      onClick={() => handleApply(position.id)}
-                      disabled={applyingTo === position.id}
-                      className="text-sm px-3 py-2 rounded-md bg-accent text-white hover:bg-accent-hover transition-[transform,background-color] duration-150 ease-[cubic-bezier(0.34,1.56,0.64,1)] hover:scale-105 hover:-translate-y-0.5 disabled:opacity-50 disabled:hover:scale-100 disabled:hover:translate-y-0 shrink-0 self-start sm:self-auto"
-                    >
-                      {applyingTo === position.id ? "Applying..." : "Apply"}
-                    </button>
-                  ) : (
-                    <span className="text-xs px-2 py-1 rounded-md bg-surface text-secondary shrink-0 self-start sm:self-auto">
-                      filled
-                    </span>
-                  )}
+                  {(() => {
+                    const myStatus = myApplications[position.id];
+
+                    if (myStatus === "accepted") {
+                      return (
+                        <span className="text-xs px-2 py-1 rounded-md bg-green-600/10 text-green-600 font-medium shrink-0 self-start sm:self-auto">
+                          You&apos;re in! ✓
+                        </span>
+                      );
+                    }
+
+                    if (myStatus === "pending") {
+                      return (
+                        <span className="text-xs px-2 py-1 rounded-md bg-surface text-secondary shrink-0 self-start sm:self-auto">
+                          Applied ✓
+                        </span>
+                      );
+                    }
+
+                    if (position.status !== "open") {
+                      return (
+                        <span className="text-xs px-2 py-1 rounded-md bg-surface text-secondary shrink-0 self-start sm:self-auto">
+                          filled
+                        </span>
+                      );
+                    }
+
+                    return (
+                      <button
+                        onClick={() => handleApply(position.id)}
+                        disabled={applyingTo === position.id}
+                        className="text-sm px-3 py-2 rounded-md bg-accent text-white hover:bg-accent-hover transition-[transform,background-color] duration-150 ease-[cubic-bezier(0.34,1.56,0.64,1)] hover:scale-105 hover:-translate-y-0.5 disabled:opacity-50 disabled:hover:scale-100 disabled:hover:translate-y-0 shrink-0 self-start sm:self-auto"
+                      >
+                        {applyingTo === position.id ? "Applying..." : "Apply"}
+                      </button>
+                    );
+                  })()}
                 </div>
               </SlideIn>
             ))}

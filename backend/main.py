@@ -2,7 +2,7 @@ import difflib
 import secrets
 from typing import Optional
 
-from fastapi import FastAPI, Depends, HTTPException, Header, Request
+from fastapi import FastAPI, Depends, HTTPException, Header, Request, BackgroundTasks
 from fastapi.middleware.cors import CORSMiddleware
 from uvicorn.middleware.proxy_headers import ProxyHeadersMiddleware
 from sqlalchemy import or_
@@ -94,6 +94,19 @@ def require_admin(current_user: models.User = Depends(get_current_user)) -> mode
     if current_user.email != ADMIN_EMAIL:
         raise HTTPException(status_code=403, detail="Not authorized")
     return current_user
+
+
+def _safe_send_email(label: str, func, *args, **kwargs) -> None:
+    """Runs an email_utils send_* call as a FastAPI BackgroundTasks job — the
+    request/response cycle no longer waits on SMTP, which can be slow to fail
+    (e.g. the outbound-SMTP network issue on Railway can take many seconds to
+    raise before this ever gets a chance to fail) and was making callers like the
+    Apply button look stuck. Failures are logged the same way the old inline
+    try/except blocks did, just after the response has already gone out."""
+    try:
+        func(*args, **kwargs)
+    except Exception as exc:
+        print(f"[{label}] Failed to send email: {exc}")
 
 
 def is_project_owner_or_admin(project: "models.Project", user: models.User) -> bool:
@@ -1151,9 +1164,29 @@ def get_project_applications(
 
 # ---------- Applications ----------
 
+@app.get("/projects/{project_id}/my-applications", response_model=list[schemas.ApplicationOut])
+def get_my_applications(
+    project_id: str,
+    current_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Lets the current viewer (not just the project owner) know which of a
+    project's positions they've already applied to and the status of each — the
+    project detail page uses this to render 'Applied' instead of a re-clickable
+    Apply button, including after a page reload."""
+    position_ids = [
+        p.id for p in db.query(models.Position).filter(models.Position.project_id == project_id).all()
+    ]
+    return db.query(models.Application).filter(
+        models.Application.position_id.in_(position_ids),
+        models.Application.user_id == current_user.id,
+    ).all()
+
+
 @app.post("/applications", response_model=schemas.ApplicationOut)
 def create_application(
     application: schemas.ApplicationCreate,
+    background_tasks: BackgroundTasks,
     current_user: models.User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
@@ -1174,16 +1207,16 @@ def create_application(
     project = db.query(models.Project).filter(models.Project.id == position.project_id).first()
     owner = db.query(models.User).filter(models.User.id == project.owner_id).first() if project else None
     if owner:
-        try:
-            email_utils.send_new_application_email(
-                owner.email,
-                owner_name=owner.full_name or owner.email,
-                applicant_name=current_user.full_name or current_user.email,
-                project_title=project.title,
-                role_name=position.role_name,
-            )
-        except Exception as exc:
-            print(f"[create_application] Failed to send new-application email to {owner.email}: {exc}")
+        background_tasks.add_task(
+            _safe_send_email,
+            "create_application",
+            email_utils.send_new_application_email,
+            owner.email,
+            owner_name=owner.full_name or owner.email,
+            applicant_name=current_user.full_name or current_user.email,
+            project_title=project.title,
+            role_name=position.role_name,
+        )
 
     return new_application
 
