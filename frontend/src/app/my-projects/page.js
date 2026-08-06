@@ -15,6 +15,7 @@ export default function MyProjects() {
   const [projects, setProjects] = useState([]);
   const [applicationsByProject, setApplicationsByProject] = useState({});
   const [teamByProject, setTeamByProject] = useState({});
+  const [directoryByProject, setDirectoryByProject] = useState({}); // { [projectId]: { [userId]: { discord_connected, github_connected } } }
   const [joinedProjects, setJoinedProjects] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -25,6 +26,10 @@ export default function MyProjects() {
   const [completing, setCompleting] = useState(false);
   const [removeTarget, setRemoveTarget] = useState(null); // { id, label }
   const [removing, setRemoving] = useState(false);
+  const [messagingTo, setMessagingTo] = useState(null); // { projectId, userId }
+  const [messageText, setMessageText] = useState("");
+  const [sendingMessage, setSendingMessage] = useState(false);
+  const [messageStatus, setMessageStatus] = useState({}); // { [`${projectId}:${userId}`]: "Message sent!" | error }
 
   useEffect(() => {
     loadMyProjects();
@@ -46,6 +51,7 @@ export default function MyProjects() {
 
       const appsMap = {};
       const teamMap = {};
+      const directoryMap = {};
       for (const project of myProjects) {
         const appsRes = await authFetch(`${API_URL}/projects/${project.id}/applications`);
         appsMap[project.id] = await appsRes.json();
@@ -53,9 +59,16 @@ export default function MyProjects() {
         const teamRes = await fetch(`${API_URL}/projects/${project.id}/team`);
         const teamData = teamRes.ok ? await teamRes.json() : [];
         teamMap[project.id] = teamData.filter((m) => !m.left_at);
+
+        // Connection status per member, so the owner sees exactly how to reach
+        // each teammate (Discord if they have it, in-platform message otherwise).
+        const directoryRes = await authFetch(`${API_URL}/projects/${project.id}/team-directory`);
+        const directoryData = directoryRes.ok ? await directoryRes.json() : [];
+        directoryMap[project.id] = Object.fromEntries(directoryData.map((d) => [d.user_id, d]));
       }
       setApplicationsByProject(appsMap);
       setTeamByProject(teamMap);
+      setDirectoryByProject(directoryMap);
 
       const profileRes = await fetch(`${API_URL}/users/${userId}/profile`);
       if (profileRes.ok) {
@@ -66,6 +79,32 @@ export default function MyProjects() {
       setError("Could not load your projects.");
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function handleSendMessage(projectId, toUserId) {
+    if (!messageText.trim()) return;
+    const key = `${projectId}:${toUserId}`;
+    setSendingMessage(true);
+    setMessageStatus((prev) => ({ ...prev, [key]: "" }));
+
+    try {
+      const res = await authFetch(`${API_URL}/projects/${projectId}/message/${toUserId}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ content: messageText.trim() }),
+      });
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.detail || "Could not send message");
+      }
+      setMessageStatus((prev) => ({ ...prev, [key]: "Message sent!" }));
+      setMessageText("");
+      setMessagingTo(null);
+    } catch (err) {
+      setMessageStatus((prev) => ({ ...prev, [key]: err.message }));
+    } finally {
+      setSendingMessage(false);
     }
   }
 
@@ -208,6 +247,7 @@ export default function MyProjects() {
           {projects.map((project, i) => {
             const applications = applicationsByProject[project.id] || [];
             const team = teamByProject[project.id] || [];
+            const directory = directoryByProject[project.id] || {};
             const meta = getProjectTypeMeta(project.project_type);
             return (
               <ScrollReveal key={project.id} delay={(i % 4) * 80} className="[perspective:600px]">
@@ -299,32 +339,100 @@ export default function MyProjects() {
                       Team members {team.length > 0 && `(${team.length})`}
                     </p>
                     <div className="flex flex-col gap-2">
-                      {team.map((member) => (
+                      {team.map((member) => {
+                        const dirInfo = directory[member.user_id];
+                        const canMessageOnDiscord = dirInfo?.discord_connected && !!project.discord_invite_url;
+                        const isMessagingThis =
+                          messagingTo && messagingTo.projectId === project.id && messagingTo.userId === member.user_id;
+                        const msgKey = `${project.id}:${member.user_id}`;
+                        return (
                         <div
                           key={member.id}
-                          className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border border-card-border rounded-lg p-3"
+                          className="border border-card-border rounded-lg p-3"
                         >
-                          <div className="min-w-0">
-                            <a
-                              href={`/profile/${member.user_id}`}
-                              className="text-sm font-medium text-navy hover:text-accent hover:underline break-words"
-                            >
-                              {member.full_name || "Unnamed member"}
-                            </a>
-                            {member.role_name && (
-                              <p className="text-xs text-secondary">{member.role_name}</p>
-                            )}
+                          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                            <div className="min-w-0">
+                              <a
+                                href={`/profile/${member.user_id}`}
+                                className="text-sm font-medium text-navy hover:text-accent hover:underline break-words"
+                              >
+                                {member.full_name || "Unnamed member"}
+                              </a>
+                              {member.role_name && (
+                                <p className="text-xs text-secondary">{member.role_name}</p>
+                              )}
+                              {dirInfo && (
+                                <span
+                                  className={
+                                    "inline-block text-xs px-2 py-0.5 rounded-md mt-1 " +
+                                    (dirInfo.discord_connected
+                                      ? "bg-green-600/10 text-green-600"
+                                      : "bg-surface text-secondary")
+                                  }
+                                >
+                                  Discord: {dirInfo.discord_connected ? "connected" : "not connected"}
+                                </span>
+                              )}
+                            </div>
+                            <div className="flex gap-2 shrink-0 self-start sm:self-auto">
+                              {canMessageOnDiscord ? (
+                                <a
+                                  href={project.discord_invite_url}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="inline-flex items-center gap-1 text-xs px-3 py-2 rounded-md border border-slate-300 text-navy hover:bg-surface font-medium transition-colors"
+                                >
+                                  Message on Discord →
+                                </a>
+                              ) : (
+                                <button
+                                  onClick={() => {
+                                    setMessagingTo(
+                                      isMessagingThis ? null : { projectId: project.id, userId: member.user_id }
+                                    );
+                                    setMessageText("");
+                                  }}
+                                  className="text-xs px-3 py-2 rounded-md border border-slate-300 text-navy hover:bg-surface font-medium transition-colors"
+                                >
+                                  {isMessagingThis ? "Cancel" : "Message via Ernord"}
+                                </button>
+                              )}
+                              <button
+                                onClick={() =>
+                                  setRemoveTarget({ id: member.id, label: member.full_name || "This member" })
+                                }
+                                className="text-xs px-3 py-2 rounded-md border border-red-300 text-red-600 hover:bg-red-50 font-medium transition-colors"
+                              >
+                                Remove
+                              </button>
+                            </div>
                           </div>
-                          <button
-                            onClick={() =>
-                              setRemoveTarget({ id: member.id, label: member.full_name || "This member" })
-                            }
-                            className="text-xs px-3 py-2 rounded-md border border-red-300 text-red-600 hover:bg-red-50 font-medium transition-colors shrink-0 self-start sm:self-auto"
-                          >
-                            Remove
-                          </button>
+
+                          {isMessagingThis && (
+                            <div className="flex flex-col gap-2 mt-3 pt-3 border-t border-card-border">
+                              <textarea
+                                value={messageText}
+                                onChange={(e) => setMessageText(e.target.value)}
+                                placeholder={`Write a message to ${member.full_name || "this teammate"}...`}
+                                rows={3}
+                                className="px-3 py-2 border border-slate-300 rounded-lg bg-white text-navy text-sm placeholder:text-secondary focus:outline-none focus:border-accent resize-none"
+                              />
+                              <button
+                                onClick={() => handleSendMessage(project.id, member.user_id)}
+                                disabled={sendingMessage || !messageText.trim()}
+                                className="self-end text-sm px-4 py-2 bg-accent text-white rounded-lg font-medium hover:bg-accent-hover transition-colors disabled:opacity-50"
+                              >
+                                {sendingMessage ? "Sending..." : "Send"}
+                              </button>
+                            </div>
+                          )}
+
+                          {messageStatus[msgKey] && (
+                            <p className="text-sm text-navy mt-2">{messageStatus[msgKey]}</p>
+                          )}
                         </div>
-                      ))}
+                        );
+                      })}
                       {team.length === 0 && (
                         <p className="text-xs text-secondary">No active team members yet.</p>
                       )}

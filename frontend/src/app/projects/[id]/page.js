@@ -313,10 +313,11 @@ export default function ProjectDetail() {
   }
 
   const meta = getProjectTypeMeta(project.project_type);
-  const allPositionsFilled = positions.length > 0 && positions.every((p) => p.status !== "open");
-  const canCreateDiscordRoom =
-    currentUserId === project.owner_id && (allPositionsFilled || project.status === "completed");
   const isOwner = currentUserId === project.owner_id;
+  // The owner can set up (or reopen) the team's Discord room whenever they want —
+  // no need to wait for every position to fill first, so a team can start
+  // coordinating on Discord from day one if the owner chooses to.
+  const canCreateDiscordRoom = isOwner;
   const activeTeam = team.filter((m) => !m.left_at);
   const myMembership = currentUserId
     ? activeTeam.find((m) => m.user_id === currentUserId)
@@ -600,7 +601,9 @@ export default function ProjectDetail() {
             <div className="flex flex-col gap-3">
               {teamDirectory
                 .filter((member) => member.user_id !== currentUserId)
-                .map((member) => (
+                .map((member) => {
+                  const canMessageOnDiscord = member.discord_connected && !!project.discord_invite_url;
+                  return (
                   <div key={member.user_id} className="border border-card-border rounded-xl p-4 bg-card shadow-sm">
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                       <div className="min-w-0">
@@ -631,15 +634,26 @@ export default function ProjectDetail() {
                           </span>
                         </div>
                       </div>
-                      <button
-                        onClick={() => {
-                          setMessagingTo(messagingTo === member.user_id ? null : member.user_id);
-                          setMessageText("");
-                        }}
-                        className="text-sm px-3 py-2 rounded-md border border-slate-300 text-navy hover:bg-surface font-medium transition-colors shrink-0 self-start sm:self-auto"
-                      >
-                        {messagingTo === member.user_id ? "Cancel" : "Message"}
-                      </button>
+                      {canMessageOnDiscord ? (
+                        <a
+                          href={project.discord_invite_url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1 text-sm px-3 py-2 rounded-md border border-slate-300 text-navy hover:bg-surface font-medium transition-colors shrink-0 self-start sm:self-auto"
+                        >
+                          Message on Discord →
+                        </a>
+                      ) : (
+                        <button
+                          onClick={() => {
+                            setMessagingTo(messagingTo === member.user_id ? null : member.user_id);
+                            setMessageText("");
+                          }}
+                          className="text-sm px-3 py-2 rounded-md border border-slate-300 text-navy hover:bg-surface font-medium transition-colors shrink-0 self-start sm:self-auto"
+                        >
+                          {messagingTo === member.user_id ? "Cancel" : "Message via Ernord"}
+                        </button>
+                      )}
                     </div>
 
                     {messagingTo === member.user_id && (
@@ -665,7 +679,8 @@ export default function ProjectDetail() {
                       <p className="text-sm text-navy mt-2">{messageStatus[member.user_id]}</p>
                     )}
                   </div>
-                ))}
+                  );
+                })}
             </div>
           </ScrollReveal>
         )}

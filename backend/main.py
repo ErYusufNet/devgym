@@ -1462,6 +1462,17 @@ def _active_membership(db: Session, project_id: str, user_id: str):
     ).first()
 
 
+def _active_member_or_owner(db: Session, project_id: str, user_id: str) -> bool:
+    """The project owner isn't necessarily a TeamMember row themselves (they only
+    get one if they also hold a position), but they still need to see/use the
+    team directory and messaging same as any active member — they're the one most
+    likely to be reaching out to a teammate who isn't on Discord."""
+    if _active_membership(db, project_id, user_id):
+        return True
+    project = db.query(models.Project).filter(models.Project.id == project_id).first()
+    return bool(project and project.owner_id == user_id)
+
+
 @app.get("/projects/{project_id}/team-directory")
 def get_team_directory(
     project_id: str,
@@ -1469,11 +1480,11 @@ def get_team_directory(
     db: Session = Depends(get_db),
 ):
     """Like GET /projects/{id}/team, but for the team's own use rather than public
-    display: gated to active members only, and adds connection status (so teammates
-    without Discord know to fall back to in-platform messaging) without leaking
-    email or discord_id."""
-    if not _active_membership(db, project_id, current_user.id):
-        raise HTTPException(status_code=403, detail="Only active team members can view the team directory")
+    display: gated to active members and the project owner, and adds connection
+    status (so teammates without Discord know to fall back to in-platform
+    messaging) without leaking email or discord_id."""
+    if not _active_member_or_owner(db, project_id, current_user.id):
+        raise HTTPException(status_code=403, detail="Only active team members or the project owner can view the team directory")
 
     members = db.query(models.TeamMember).filter(
         models.TeamMember.project_id == project_id,
@@ -1504,14 +1515,15 @@ def send_team_message(
     project_id: str,
     to_user_id: str,
     payload: schemas.TeamMessageCreate,
+    background_tasks: BackgroundTasks,
     current_user: models.User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
     if to_user_id == current_user.id:
         raise HTTPException(status_code=400, detail="You can't message yourself")
 
-    if not _active_membership(db, project_id, current_user.id):
-        raise HTTPException(status_code=403, detail="You must be an active member of this project to message its team")
+    if not _active_member_or_owner(db, project_id, current_user.id):
+        raise HTTPException(status_code=403, detail="You must be an active member or the owner of this project to message its team")
     if not _active_membership(db, project_id, to_user_id):
         raise HTTPException(status_code=403, detail="That user is not an active member of this project")
 
@@ -1530,17 +1542,17 @@ def send_team_message(
     db.commit()
     db.refresh(message)
 
-    try:
-        email_utils.send_team_message_email(
-            recipient.email,
-            to_name=recipient.full_name or recipient.email,
-            from_name=current_user.full_name or "A teammate",
-            project_title=project.title,
-            project_id=project.id,
-            content=payload.content,
-        )
-    except Exception as exc:
-        print(f"[send_team_message] Failed to send message email to {recipient.email}: {exc}")
+    background_tasks.add_task(
+        _safe_send_email,
+        "send_team_message",
+        email_utils.send_team_message_email,
+        recipient.email,
+        to_name=recipient.full_name or recipient.email,
+        from_name=current_user.full_name or "A teammate",
+        project_title=project.title,
+        project_id=project.id,
+        content=payload.content,
+    )
 
     return {"message": "Message sent"}
 
