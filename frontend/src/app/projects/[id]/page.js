@@ -279,9 +279,9 @@ export default function ProjectDetail() {
       <FloatingTechLogosFixed />
       <div className="max-w-2xl mx-auto">
         <ScrollReveal>
-          <div className="flex items-start justify-between mb-4">
+          <div className="flex items-start justify-between gap-2 flex-wrap mb-4">
             <IconBadge icon={meta.icon} color={meta.color} />
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-wrap justify-end">
               {project.status === "completed" && (
                 <span className="text-xs px-2 py-1 rounded-full bg-green-600/10 text-green-600 font-medium">
                   🎉 Completed
@@ -295,8 +295,8 @@ export default function ProjectDetail() {
             </div>
           </div>
 
-          <div className="flex items-center gap-2 mb-2">
-            <h1 className="text-3xl font-semibold text-navy">{project.title}</h1>
+          <div className="flex items-center gap-2 flex-wrap mb-2">
+            <h1 className="text-2xl sm:text-3xl font-semibold text-navy break-words">{project.title}</h1>
             <HealthBadge health={project.health} />
           </div>
           {project.last_commit_at && (
@@ -444,11 +444,11 @@ export default function ProjectDetail() {
           <div className="flex flex-col gap-3">
             {positions.map((position, i) => (
               <SlideIn key={position.id} index={i}>
-                <div className="border border-card-border rounded-xl p-5 bg-card shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 flex items-center justify-between">
-                  <div>
-                    <p className="font-medium text-navy">{position.role_name}</p>
+                <div className="border border-card-border rounded-xl p-5 bg-card shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="font-medium text-navy break-words">{position.role_name}</p>
                     {position.description && (
-                      <p className="text-sm text-secondary">{position.description}</p>
+                      <p className="text-sm text-secondary break-words">{position.description}</p>
                     )}
                   </div>
 
@@ -456,12 +456,12 @@ export default function ProjectDetail() {
                     <button
                       onClick={() => handleApply(position.id)}
                       disabled={applyingTo === position.id}
-                      className="text-xs px-3 py-1.5 rounded-md bg-accent text-white hover:bg-accent-hover transition-[transform,background-color] duration-150 ease-[cubic-bezier(0.34,1.56,0.64,1)] hover:scale-105 hover:-translate-y-0.5 disabled:opacity-50 disabled:hover:scale-100 disabled:hover:translate-y-0 shrink-0"
+                      className="text-sm px-3 py-2 rounded-md bg-accent text-white hover:bg-accent-hover transition-[transform,background-color] duration-150 ease-[cubic-bezier(0.34,1.56,0.64,1)] hover:scale-105 hover:-translate-y-0.5 disabled:opacity-50 disabled:hover:scale-100 disabled:hover:translate-y-0 shrink-0 self-start sm:self-auto"
                     >
                       {applyingTo === position.id ? "Applying..." : "Apply"}
                     </button>
                   ) : (
-                    <span className="text-xs px-2 py-1 rounded-md bg-surface text-secondary shrink-0">
+                    <span className="text-xs px-2 py-1 rounded-md bg-surface text-secondary shrink-0 self-start sm:self-auto">
                       filled
                     </span>
                   )}
@@ -485,9 +485,9 @@ export default function ProjectDetail() {
             <div className="flex flex-col gap-3">
               {activeTeam.map((member, i) => (
                 <SlideIn key={member.id} index={i}>
-                  <div className="border border-card-border rounded-xl p-4 bg-card shadow-sm flex items-center justify-between">
-                    <div>
-                      <p className="font-medium text-navy">{member.full_name || "Unnamed member"}</p>
+                  <div className="border border-card-border rounded-xl p-4 bg-card shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="font-medium text-navy break-words">{member.full_name || "Unnamed member"}</p>
                       {member.role_name && (
                         <p className="text-sm text-secondary">{member.role_name}</p>
                       )}
@@ -500,7 +500,7 @@ export default function ProjectDetail() {
                           label: member.full_name || "This member",
                         })
                       }
-                      className="text-xs px-3 py-1.5 rounded-md border border-red-300 text-red-600 hover:bg-red-50 font-medium transition-colors shrink-0"
+                      className="text-sm px-3 py-2 rounded-md border border-red-300 text-red-600 hover:bg-red-50 font-medium transition-colors shrink-0 self-start sm:self-auto"
                     >
                       Remove
                     </button>

@@ -140,22 +140,22 @@ export default function Home() {
             Nordic career platform
           </span>
 
-          <h1 className="text-5xl sm:text-6xl font-semibold tracking-tight text-navy mb-6">
+          <h1 className="text-4xl sm:text-5xl md:text-6xl font-semibold tracking-tight text-navy mb-6">
             Build real experience on real teams
           </h1>
 
-          <p className="text-lg text-secondary mb-10 max-w-xl mx-auto">
+          <p className="text-base sm:text-lg text-secondary mb-10 max-w-xl mx-auto">
             Ernord helps unemployed and early-career developers keep their skills sharp by working on real software projects with real teams — not alone, not just tutorials.
           </p>
 
-          <div className="flex flex-wrap justify-center gap-4 mb-16">
+          <div className="flex flex-col sm:flex-row flex-wrap justify-center gap-4 mb-16">
             <a
               href="/register"
-              className="px-6 py-3 bg-accent text-white rounded-lg font-medium hover:bg-accent-hover transition-[transform,background-color] duration-150 ease-[cubic-bezier(0.34,1.56,0.64,1)] hover:scale-105 hover:-translate-y-0.5"
+              className="px-6 py-3 bg-accent text-white rounded-lg font-medium text-center hover:bg-accent-hover transition-[transform,background-color] duration-150 ease-[cubic-bezier(0.34,1.56,0.64,1)] hover:scale-105 hover:-translate-y-0.5"
             >
               Get started free
             </a>
-            <a href="#how-it-works" className="px-6 py-3 bg-white border border-slate-200 rounded-lg font-medium text-navy hover:bg-surface">
+            <a href="#how-it-works" className="px-6 py-3 bg-white border border-slate-200 rounded-lg font-medium text-navy text-center hover:bg-surface">
               See how it works
             </a>
           </div>

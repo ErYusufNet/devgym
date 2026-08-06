@@ -133,21 +133,21 @@ export default function ProfileView({ userId: userIdProp, editable = false }) {
     <div className="min-h-screen bg-white px-6 py-12">
       <FloatingTechLogosFixed />
       <div className="max-w-2xl mx-auto">
-        <ScrollReveal className="flex items-center justify-between gap-4 mb-8">
-          <div className="flex items-center gap-4">
-            <div className="w-16 h-16 rounded-full bg-surface flex items-center justify-center text-xl font-medium text-navy">
+        <ScrollReveal className="flex flex-wrap items-center justify-between gap-4 mb-8">
+          <div className="flex items-center gap-4 min-w-0">
+            <div className="w-16 h-16 rounded-full bg-surface flex items-center justify-center text-xl font-medium text-navy shrink-0">
               {profile.full_name ? profile.full_name[0].toUpperCase() : "?"}
             </div>
-            <div>
-              <h1 className="text-2xl font-semibold text-navy">{profile.full_name}</h1>
-              <p className="text-sm text-secondary">{profile.email}</p>
+            <div className="min-w-0">
+              <h1 className="text-2xl font-semibold text-navy break-words">{profile.full_name}</h1>
+              <p className="text-sm text-secondary break-words">{profile.email}</p>
             </div>
           </div>
 
           {editable && (
             <a
               href="/profile/edit"
-              className="px-3 py-1.5 text-sm border border-slate-300 rounded-lg text-navy hover:bg-surface whitespace-nowrap"
+              className="px-3 py-2 text-sm border border-slate-300 rounded-lg text-navy hover:bg-surface whitespace-nowrap"
             >
               Edit profile
             </a>
@@ -330,9 +330,9 @@ export default function ProfileView({ userId: userIdProp, editable = false }) {
           </div>
           <div className="flex flex-col gap-2">
             {profile.owned_projects.map((p) => (
-              <a key={p.id} href={"/projects/" + p.id} className="border border-card-border rounded-xl px-4 py-3 text-sm text-navy bg-white shadow-sm hover:shadow-md transition-shadow flex items-center justify-between">
-                <span>{p.title}</span>
-                <span className="text-xs text-secondary capitalize">{p.status}</span>
+              <a key={p.id} href={"/projects/" + p.id} className="border border-card-border rounded-xl px-4 py-3 text-sm text-navy bg-white shadow-sm hover:shadow-md transition-shadow flex flex-wrap items-center justify-between gap-2">
+                <span className="break-words">{p.title}</span>
+                <span className="text-xs text-secondary capitalize shrink-0">{p.status}</span>
               </a>
             ))}
             {profile.owned_projects.length === 0 && (
@@ -355,8 +355,8 @@ export default function ProfileView({ userId: userIdProp, editable = false }) {
           </div>
           <div className="flex flex-col gap-2">
             {profile.joined_projects.map((p) => (
-              <a key={p.id} href={"/projects/" + p.id} className="border border-card-border rounded-xl px-4 py-3 text-sm text-navy bg-white shadow-sm hover:shadow-md transition-shadow flex items-center justify-between">
-                <span>{p.title}</span>
+              <a key={p.id} href={"/projects/" + p.id} className="border border-card-border rounded-xl px-4 py-3 text-sm text-navy bg-white shadow-sm hover:shadow-md transition-shadow flex flex-wrap items-center justify-between gap-2">
+                <span className="break-words">{p.title}</span>
                 <div className="flex items-center gap-3 shrink-0">
                   {p.avg_rating != null && (
                     <span className="flex items-center gap-1">

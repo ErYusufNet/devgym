@@ -82,7 +82,7 @@ export default function Discover() {
           </button>
 
           {filtersOpen && (
-          <div className="border border-card-border rounded-xl p-5 bg-card shadow-sm grid grid-cols-2 sm:grid-cols-3 gap-4">
+          <div className="border border-card-border rounded-xl p-5 bg-card shadow-sm grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div className="flex flex-col gap-1">
               <label className="text-xs text-secondary">Role</label>
               <select

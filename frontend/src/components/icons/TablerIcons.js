@@ -301,3 +301,22 @@ export function IconStarFilled({ className = "w-5 h-5" }) {
     </svg>
   );
 }
+
+export function IconMenu2({ className = "w-5 h-5" }) {
+  return (
+    <svg {...base} className={className}>
+      <path d="M4 6l16 0" />
+      <path d="M4 12l16 0" />
+      <path d="M4 18l16 0" />
+    </svg>
+  );
+}
+
+export function IconX({ className = "w-5 h-5" }) {
+  return (
+    <svg {...base} className={className}>
+      <path d="M18 6l-12 12" />
+      <path d="M6 6l12 12" />
+    </svg>
+  );
+}

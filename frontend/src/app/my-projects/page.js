@@ -211,15 +211,15 @@ export default function MyProjects() {
 
                   <div className="flex flex-col gap-2">
                     {applications.map((app, appIndex) => (
-                      <SlideIn key={app.id} index={appIndex} className="flex items-center justify-between border border-card-border rounded-lg p-3">
-                        <div className="flex items-center gap-3">
+                      <SlideIn key={app.id} index={appIndex} className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border border-card-border rounded-lg p-3">
+                        <div className="flex items-center gap-3 min-w-0">
                           <div className="w-8 h-8 rounded-full bg-blue-600/10 text-blue-600 flex items-center justify-center text-xs font-semibold shrink-0">
                             {(app.applicant_name || app.applicant_email || "?")[0].toUpperCase()}
                           </div>
-                          <div>
+                          <div className="min-w-0">
                             <a
                               href={`/profile/${app.user_id}`}
-                              className="text-sm font-medium text-navy hover:text-accent hover:underline"
+                              className="text-sm font-medium text-navy hover:text-accent hover:underline break-words"
                             >
                               {app.applicant_name || app.applicant_email}
                             </a>
@@ -233,13 +233,13 @@ export default function MyProjects() {
                           <div className="flex gap-2 shrink-0">
                             <button
                               onClick={() => handleAccept(app.id, app.applicant_name || app.applicant_email)}
-                              className="text-xs px-3 py-1.5 rounded-md bg-green-600 text-white hover:bg-green-700 font-medium transition-colors"
+                              className="text-xs px-3 py-2 rounded-md bg-green-600 text-white hover:bg-green-700 font-medium transition-colors"
                             >
                               Accept
                             </button>
                             <button
                               onClick={() => handleReject(app.id)}
-                              className="text-xs px-3 py-1.5 rounded-md border border-red-300 text-red-600 hover:bg-red-50 font-medium transition-colors"
+                              className="text-xs px-3 py-2 rounded-md border border-red-300 text-red-600 hover:bg-red-50 font-medium transition-colors"
                             >
                               Reject
                             </button>
