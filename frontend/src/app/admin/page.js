@@ -251,12 +251,20 @@ export default function AdminPanel() {
                     {p.owner_email || "unknown owner"} · {p.status} · {new Date(p.created_at).toLocaleDateString()}
                   </p>
                 </div>
-                <button
-                  onClick={() => setConfirmTarget({ type: "project", id: p.id, label: p.title })}
-                  className="text-xs px-3 py-1.5 rounded-md border border-red-300 text-red-600 hover:bg-red-50 font-medium transition-colors shrink-0"
-                >
-                  Delete
-                </button>
+                <div className="flex gap-2 shrink-0">
+                  <a
+                    href={`/projects/${p.id}/edit`}
+                    className="text-xs px-3 py-1.5 rounded-md border border-slate-300 text-navy hover:bg-surface font-medium transition-colors"
+                  >
+                    Edit
+                  </a>
+                  <button
+                    onClick={() => setConfirmTarget({ type: "project", id: p.id, label: p.title })}
+                    className="text-xs px-3 py-1.5 rounded-md border border-red-300 text-red-600 hover:bg-red-50 font-medium transition-colors"
+                  >
+                    Delete
+                  </button>
+                </div>
               </div>
             ))}
             {projects.length === 0 && <p className="text-sm text-secondary">No projects.</p>}

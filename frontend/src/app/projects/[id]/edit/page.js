@@ -8,6 +8,9 @@ import FloatingTechLogosFixed from "@/components/FloatingTechLogosFixed";
 import { API_URL } from "@/lib/api";
 
 const PROJECT_TYPES = ["web", "mobile", "saas", "desktop", "api", "game", "testing"];
+// Purely a UI convenience to let the edit form load for the admin account too —
+// the actual gate is the owner-or-admin check on PUT /projects/{id} server-side.
+const ADMIN_EMAIL = "ernordbusiness@hotmail.com";
 
 export default function EditProject() {
   const { id } = useParams();
@@ -30,6 +33,7 @@ export default function EditProject() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+  const [editingAsAdmin, setEditingAsAdmin] = useState(false);
 
   useEffect(() => {
     async function loadProject() {
@@ -40,11 +44,20 @@ export default function EditProject() {
         if (!res.ok) throw new Error("Project not found");
         const project = await res.json();
 
-        if (!userId || project.owner_id !== userId) {
+        let isAdmin = false;
+        if (userId && project.owner_id !== userId) {
+          const profileRes = await fetch(`${API_URL}/users/${userId}/profile`);
+          const profile = profileRes.ok ? await profileRes.json() : null;
+          isAdmin = profile?.email === ADMIN_EMAIL;
+        }
+
+        if (!userId || (project.owner_id !== userId && !isAdmin)) {
           setError("You don't have permission to edit this project.");
           setLoading(false);
           return;
         }
+
+        setEditingAsAdmin(isAdmin);
 
         setTitle(project.title || "");
         setDescription(project.description || "");
@@ -98,7 +111,7 @@ export default function EditProject() {
         throw new Error(data.detail || "Could not update project");
       }
 
-      router.push("/my-projects");
+      router.push(editingAsAdmin ? `/projects/${id}` : "/my-projects");
     } catch (err) {
       setError(err.message);
     } finally {
@@ -155,7 +168,10 @@ export default function EditProject() {
     <div className="min-h-screen bg-white px-6 py-12">
       <FloatingTechLogosFixed />
       <div className="max-w-lg mx-auto">
-        <h1 className="text-3xl font-semibold text-navy mb-8">Edit project</h1>
+        <h1 className={"text-3xl font-semibold text-navy " + (editingAsAdmin ? "mb-2" : "mb-8")}>Edit project</h1>
+        {editingAsAdmin && (
+          <p className="text-sm text-secondary mb-8">Editing as admin — this isn&apos;t your project.</p>
+        )}
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
           <input

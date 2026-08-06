@@ -96,6 +96,13 @@ def require_admin(current_user: models.User = Depends(get_current_user)) -> mode
     return current_user
 
 
+def is_project_owner_or_admin(project: "models.Project", user: models.User) -> bool:
+    """Shared check for the project-management routes below (update project, manage
+    its positions) — lets the project's owner manage it as usual, and additionally
+    lets the admin account manage any project for moderation purposes."""
+    return project.owner_id == user.id or user.email == ADMIN_EMAIL
+
+
 @app.get("/")
 def read_root():
     return {"message": "ErNord API is running"}
@@ -886,8 +893,8 @@ def update_project(
     project = db.query(models.Project).filter(models.Project.id == project_id).first()
     if not project:
         raise HTTPException(status_code=404, detail="Project not found")
-    if project.owner_id != current_user.id:
-        raise HTTPException(status_code=403, detail="Only the project owner can update this project")
+    if not is_project_owner_or_admin(project, current_user):
+        raise HTTPException(status_code=403, detail="Only the project owner or an admin can update this project")
 
     update_data = updates.dict(exclude_unset=True)
     for field, value in update_data.items():
@@ -1065,8 +1072,8 @@ def create_position(
     project = db.query(models.Project).filter(models.Project.id == project_id).first()
     if not project:
         raise HTTPException(status_code=404, detail="Project not found")
-    if project.owner_id != current_user.id:
-        raise HTTPException(status_code=403, detail="Only the project owner can add positions")
+    if not is_project_owner_or_admin(project, current_user):
+        raise HTTPException(status_code=403, detail="Only the project owner or an admin can add positions")
 
     new_position = models.Position(
         project_id=project_id,
@@ -1099,8 +1106,8 @@ def delete_position(
         raise HTTPException(status_code=404, detail="Position not found")
 
     project = db.query(models.Project).filter(models.Project.id == project_id).first()
-    if not project or project.owner_id != current_user.id:
-        raise HTTPException(status_code=403, detail="Only the project owner can delete positions")
+    if not project or not is_project_owner_or_admin(project, current_user):
+        raise HTTPException(status_code=403, detail="Only the project owner or an admin can delete positions")
 
     db.query(models.Application).filter(models.Application.position_id == position_id).delete(synchronize_session=False)
     db.delete(position)
