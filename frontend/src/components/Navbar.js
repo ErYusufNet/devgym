@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Image from "next/image";
 import { API_URL } from "@/lib/api";
 import { IconMenu2, IconX } from "@/components/icons/TablerIcons";
 
@@ -50,8 +51,15 @@ export default function Navbar() {
   return (
     <nav className="sticky top-0 z-40 border-b border-slate-200 bg-white">
       <div className="flex items-center justify-between max-w-5xl mx-auto px-6 py-4 w-full">
-        <a href="/" className="text-lg font-semibold text-navy tracking-tight">
-          Ernord
+        <a href="/" className="flex items-center shrink-0">
+          <Image
+            src="/ernord-logo-navbar.png"
+            alt="Ernord"
+            width={53}
+            height={36}
+            priority
+            className="h-9 w-auto"
+          />
         </a>
 
         {/* Desktop nav */}
