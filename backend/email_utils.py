@@ -73,6 +73,42 @@ def send_application_accepted_email(to_email: str, applicant_name: str, project_
     send_email(to_email, f"You've been accepted! Welcome to {project_title}", body)
 
 
+def send_team_complete_email(
+    to_email: str,
+    member_name: str,
+    project_title: str,
+    project_id: str,
+    teammates: list,
+    github_repo_url: str = None,
+    discord_invite_url: str = None,
+) -> None:
+    """Sent to every active team member once a project's last open position gets
+    filled. `teammates` is the list of the *other* active members, each a dict with
+    "name" and "profile_url", so every recipient sees who they're building with."""
+    project_link = f"{FRONTEND_URL}/projects/{project_id}"
+
+    teammates_lines = "\n".join(f"- {t['name']} — {t['profile_url']}" for t in teammates) or "(no other active members)"
+
+    extra_lines = []
+    if github_repo_url:
+        extra_lines.append(f"GitHub repo: {github_repo_url}")
+    if discord_invite_url:
+        extra_lines.append(f"Discord room: {discord_invite_url}")
+    extra_block = ("\n" + "\n".join(extra_lines) + "\n") if extra_lines else ""
+
+    body = (
+        f"Hi {member_name},\n\n"
+        f"Your team on \"{project_title}\" is complete — every position has been filled!\n\n"
+        f"Your teammates:\n{teammates_lines}\n"
+        f"{extra_block}\n"
+        f"Check out the project here:\n{project_link}\n\n"
+        "Time to start building!\n\n"
+        "- Ernord"
+    )
+
+    send_email(to_email, f"Your team is complete: {project_title}", body)
+
+
 def send_member_removed_email(to_email: str, member_name: str, project_title: str) -> None:
     body = (
         f"Hi {member_name},\n\n"

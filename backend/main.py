@@ -1236,6 +1236,47 @@ def accept_application(
         except Exception as exc:
             print(f"[accept_application] Failed to send acceptance email to {applicant.email}: {exc}")
 
+    # Once this acceptance leaves no open positions, the team is complete — notify
+    # everyone currently active on it (including the member just accepted above).
+    remaining_open = db.query(models.Position).filter(
+        models.Position.project_id == project.id,
+        models.Position.status == models.PositionStatus.open,
+    ).count()
+    if remaining_open == 0:
+        active_members = db.query(models.TeamMember).filter(
+            models.TeamMember.project_id == project.id,
+            models.TeamMember.left_at.is_(None),
+        ).all()
+        member_users = {
+            u.id: u for u in db.query(models.User).filter(
+                models.User.id.in_({m.user_id for m in active_members})
+            ).all()
+        }
+        roster = [
+            {
+                "user_id": m.user_id,
+                "name": member_users[m.user_id].full_name or member_users[m.user_id].email,
+                "profile_url": f"{email_utils.FRONTEND_URL}/profile/{m.user_id}",
+            }
+            for m in active_members
+            if m.user_id in member_users
+        ]
+        for entry in roster:
+            recipient = member_users[entry["user_id"]]
+            teammates = [t for t in roster if t["user_id"] != entry["user_id"]]
+            try:
+                email_utils.send_team_complete_email(
+                    recipient.email,
+                    member_name=recipient.full_name or recipient.email,
+                    project_title=project.title,
+                    project_id=project.id,
+                    teammates=teammates,
+                    github_repo_url=project.github_repo_url,
+                    discord_invite_url=project.discord_invite_url,
+                )
+            except Exception as exc:
+                print(f"[accept_application] Failed to send team-complete email to {recipient.email}: {exc}")
+
     github_collaborator_added = False
     applicant_needs_github = False
 
