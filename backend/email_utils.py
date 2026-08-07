@@ -31,6 +31,21 @@ def send_email(to_email: str, subject: str, body: str, reply_to: str = None) -> 
         server.sendmail(SMTP_EMAIL, [to_email], msg.as_string())
 
 
+def send_verification_email(to_email: str, token: str) -> None:
+    verify_link = f"{FRONTEND_URL}/verify-email?token={token}"
+
+    body = (
+        "Hi,\n\n"
+        "Welcome to Ernord! Please verify your email address by clicking the link below. "
+        "This link expires in 24 hours.\n\n"
+        f"{verify_link}\n\n"
+        "If you didn't create this account, you can safely ignore this email.\n\n"
+        "- Ernord"
+    )
+
+    send_email(to_email, "Verify your Ernord email address", body)
+
+
 def send_password_reset_email(to_email: str, token: str) -> None:
     reset_link = f"{FRONTEND_URL}/reset-password?token={token}"
 

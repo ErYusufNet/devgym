@@ -378,14 +378,26 @@ export default function ProjectDetail() {
           {canCreateDiscordRoom && (
             <div className="mb-4">
               {project.discord_invite_url ? (
-                <a
-                  href={project.discord_invite_url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg border border-slate-300 text-sm text-navy hover:bg-surface"
-                >
-                  Open Discord room →
-                </a>
+                <div className="flex flex-wrap gap-2">
+                  <a
+                    href={project.discord_invite_url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg border border-slate-300 text-sm text-navy hover:bg-surface"
+                  >
+                    Open Discord room →
+                  </a>
+                  {project.discord_voice_invite_url && (
+                    <a
+                      href={project.discord_voice_invite_url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg border border-slate-300 text-sm text-navy hover:bg-surface"
+                    >
+                      Open voice channel →
+                    </a>
+                  )}
+                </div>
               ) : (
                 <button
                   onClick={handleCreateDiscordRoom}
@@ -410,6 +422,19 @@ export default function ProjectDetail() {
                     >
                       Join here →
                     </a>
+                    {discordRoomResult.voice_invite_url && (
+                      <>
+                        {" "}or{" "}
+                        <a
+                          href={discordRoomResult.voice_invite_url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-accent hover:text-accent-hover font-medium"
+                        >
+                          join voice →
+                        </a>
+                      </>
+                    )}
                   </p>
                   {discordRoomResult.not_connected.length > 0 && (
                     <p className="text-xs text-secondary mt-1">

@@ -79,3 +79,36 @@ def verify_password_reset_token(token: str) -> Optional[str]:
         return None
 
     return payload.get("sub")
+
+
+# Same separation rationale as the password-reset secret above: a leaked/expired
+# email-verification link must never double as (or be replayable as) a normal
+# access token, so this gets its own secret rather than reusing SECRET_KEY.
+EMAIL_VERIFICATION_SECRET_KEY = os.getenv("JWT_EMAIL_VERIFICATION_SECRET_KEY")
+if not EMAIL_VERIFICATION_SECRET_KEY:
+    raise RuntimeError(
+        "JWT_EMAIL_VERIFICATION_SECRET_KEY is not set. Generate one with: "
+        "python -c \"import secrets; print(secrets.token_hex(32))\" "
+        "and add it to backend/.env (and to Railway's environment variables in production)."
+    )
+
+EMAIL_VERIFICATION_ALGORITHM = "HS256"
+EMAIL_VERIFICATION_EXPIRE_MINUTES = 60 * 24  # 24 saat
+
+
+def create_email_verification_token(user_id: str) -> str:
+    expire = datetime.utcnow() + timedelta(minutes=EMAIL_VERIFICATION_EXPIRE_MINUTES)
+    to_encode = {"sub": user_id, "purpose": "email_verification", "exp": expire}
+    return jwt.encode(to_encode, EMAIL_VERIFICATION_SECRET_KEY, algorithm=EMAIL_VERIFICATION_ALGORITHM)
+
+
+def verify_email_verification_token(token: str) -> Optional[str]:
+    try:
+        payload = jwt.decode(token, EMAIL_VERIFICATION_SECRET_KEY, algorithms=[EMAIL_VERIFICATION_ALGORITHM])
+    except jwt.JWTError:
+        return None
+
+    if payload.get("purpose") != "email_verification":
+        return None
+
+    return payload.get("sub")

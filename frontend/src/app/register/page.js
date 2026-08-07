@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import ScrollReveal from "@/components/ScrollReveal";
 import IconBadge from "@/components/IconBadge";
 import { IconUserPlus } from "@/components/icons/TablerIcons";
@@ -9,7 +8,6 @@ import FloatingTechLogosFixed from "@/components/FloatingTechLogosFixed";
 import { API_URL } from "@/lib/api";
 
 export default function Register() {
-  const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [fullName, setFullName] = useState("");
@@ -19,6 +17,7 @@ export default function Register() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [pendingApproval, setPendingApproval] = useState(false);
+  const [pendingVerification, setPendingVerification] = useState(false);
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -47,13 +46,40 @@ export default function Register() {
       if (accountType === "recruiter") {
         setPendingApproval(true);
       } else {
-        router.push("/login");
+        // Login itself isn't blocked while unverified (see backend /login), but
+        // publishing/applying is, so there's nothing useful to do yet without
+        // verifying — send them to check their inbox rather than straight into
+        // a mostly-unusable logged-in state.
+        setPendingVerification(true);
       }
     } catch (err) {
       setError(err.message);
     } finally {
       setLoading(false);
     }
+  }
+
+  if (pendingVerification) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-white px-6 py-12">
+        <FloatingTechLogosFixed />
+        <ScrollReveal className="w-full max-w-sm text-center">
+          <div className="flex justify-center mb-4">
+            <IconBadge icon={IconUserPlus} color="purple" />
+          </div>
+          <h1 className="text-2xl font-semibold text-navy mb-3">Check your inbox</h1>
+          <div className="border border-card-border rounded-xl shadow-sm bg-card p-6">
+            <p className="text-navy font-medium mb-2">We sent a confirmation link to {email}</p>
+            <p className="text-sm text-secondary">
+              Click the link in that email to verify your address — you&apos;ll need to do that before you can log in.
+            </p>
+          </div>
+          <p className="text-sm text-secondary text-center mt-6">
+            <a href="/login" className="text-navy font-medium">Go to login</a>
+          </p>
+        </ScrollReveal>
+      </div>
+    );
   }
 
   if (pendingApproval) {
@@ -68,7 +94,7 @@ export default function Register() {
           <div className="border border-card-border rounded-xl shadow-sm bg-card p-6">
             <p className="text-navy font-medium mb-2">Your recruiter account is pending approval</p>
             <p className="text-sm text-secondary">
-              We manually review recruiter accounts before granting access to Find Talent. You&apos;ll be able to log in once your account is approved.
+              We&apos;ve sent a confirmation link to {email} — please verify your address. We also manually review recruiter accounts before granting access to Find Talent, so you&apos;ll be able to search for talent once that review is done.
             </p>
           </div>
           <p className="text-sm text-secondary text-center mt-6">

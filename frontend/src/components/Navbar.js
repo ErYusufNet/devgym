@@ -11,11 +11,20 @@ export default function Navbar() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [needsVerification, setNeedsVerification] = useState(false);
+  const [resendState, setResendState] = useState("idle"); // "idle" | "sending" | "sent"
+  const [userEmail, setUserEmail] = useState("");
 
   useEffect(() => {
     const token = localStorage.getItem("devgym_token");
     setIsLoggedIn(!!token);
     if (!token) return;
+
+    // /login stores this flag straight from its response (see login/page.js).
+    // Profile edits and re-logins keep it fresh; verifying in another tab only
+    // updates it once this tab logs in again, which matches "banner reflects
+    // the state as of last login" being good enough for a non-blocking nudge.
+    setNeedsVerification(localStorage.getItem("devgym_email_verified") === "false");
 
     // Purely a UI convenience to hide/show the Admin link — the actual gate is
     // require_admin on the backend, so there's nothing sensitive being decided here.
@@ -23,9 +32,35 @@ export default function Navbar() {
     if (!userId) return;
     fetch(`${API_URL}/users/${userId}/profile`)
       .then((res) => (res.ok ? res.json() : null))
-      .then((data) => setIsAdmin(data?.email === ADMIN_EMAIL))
+      .then((data) => {
+        setIsAdmin(data?.email === ADMIN_EMAIL);
+        if (data?.email) setUserEmail(data.email);
+        // Profile is the source of truth if it disagrees with the stale
+        // localStorage flag (e.g. verified in another tab, then this tab
+        // navigated without a fresh login).
+        if (typeof data?.email_verified === "boolean") {
+          setNeedsVerification(!data.email_verified);
+          localStorage.setItem("devgym_email_verified", data.email_verified ? "true" : "false");
+        }
+      })
       .catch(() => {});
   }, []);
+
+  async function handleResendVerification() {
+    setResendState("sending");
+    try {
+      await fetch(`${API_URL}/resend-verification-email`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: userEmail }),
+      });
+    } catch {
+      // Best-effort — the endpoint always returns a generic message anyway,
+      // so there's nothing more specific to show on failure here.
+    } finally {
+      setResendState("sent");
+    }
+  }
 
   // Close the mobile drawer whenever the viewport grows back past the md
   // breakpoint, so it can't be left open (and hidden) behind the desktop nav.
@@ -40,6 +75,7 @@ export default function Navbar() {
   function handleLogout() {
     localStorage.removeItem("devgym_token");
     localStorage.removeItem("devgym_user_id");
+    localStorage.removeItem("devgym_email_verified");
     window.location.href = "/";
   }
 
@@ -105,6 +141,30 @@ export default function Navbar() {
           {mobileOpen ? <IconX className="w-6 h-6" /> : <IconMenu2 className="w-6 h-6" />}
         </button>
       </div>
+
+      {/* Persistent nudge for a logged-in-but-unverified account — verification
+          itself isn't gated at login (see backend /login), only at the actions
+          that matter (creating/applying to a project), so this is advisory
+          rather than blocking. */}
+      {isLoggedIn && needsVerification && (
+        <div className="border-t border-amber-200 bg-amber-50 px-6 py-2">
+          <div className="max-w-5xl mx-auto flex flex-wrap items-center justify-center gap-x-2 gap-y-1 text-sm text-amber-800 text-center">
+            <span>Please verify your email address to publish projects or apply to one.</span>
+            {resendState === "sent" ? (
+              <span className="text-amber-700">If that email is registered, a new confirmation link is on its way.</span>
+            ) : (
+              <button
+                type="button"
+                onClick={handleResendVerification}
+                disabled={resendState === "sending"}
+                className="font-medium underline disabled:opacity-50"
+              >
+                {resendState === "sending" ? "Sending..." : "Resend confirmation email"}
+              </button>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Mobile dropdown menu */}
       {mobileOpen && (

@@ -29,9 +29,13 @@ export default function Login() {
         throw new Error(data.detail || "Something went wrong");
       }
 
+      // Login succeeds even for an unverified account (see backend /login) — the
+      // persistent "verify your email" banner in Navbar picks this flag up from
+      // localStorage instead of blocking access here.
       const data = await res.json();
       localStorage.setItem("devgym_token", data.access_token);
       localStorage.setItem("devgym_user_id", data.user_id);
+      localStorage.setItem("devgym_email_verified", data.email_verified ? "true" : "false");
 
       window.location.href = "/";
     } catch (err) {

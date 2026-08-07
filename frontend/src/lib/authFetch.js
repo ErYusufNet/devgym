@@ -11,6 +11,7 @@ export async function authFetch(url, options = {}) {
   if (res.status === 401) {
     localStorage.removeItem("devgym_token");
     localStorage.removeItem("devgym_user_id");
+    localStorage.removeItem("devgym_email_verified");
     window.location.href = "/login";
   }
 

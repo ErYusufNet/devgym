@@ -52,6 +52,7 @@ class UserOut(BaseModel):
     company_name: Optional[str] = None
     recruiter_approved: bool
     visible_to_recruiters: bool
+    email_verified: bool = False
     created_at: datetime
 
     class Config:
@@ -101,6 +102,8 @@ class ProjectOut(BaseModel):
     completion_summary: Optional[str] = None
     discord_channel_id: Optional[str] = None
     discord_invite_url: Optional[str] = None
+    discord_voice_channel_id: Optional[str] = None
+    discord_voice_invite_url: Optional[str] = None
 
     class Config:
         from_attributes = True
@@ -253,6 +256,12 @@ class FeedbackOut(BaseModel):
 
     class Config:
         from_attributes = True
+
+
+# ---------- Email Verification ----------
+
+class ResendVerificationRequest(BaseModel):
+    email: EmailStr
 
 
 # ---------- Password Reset ----------

@@ -24,6 +24,27 @@ from database import engine, get_db
 # Create database tables (creates devgym.db on first run)
 models.Base.metadata.create_all(bind=engine)
 
+# create_all() above only creates tables that don't exist yet — it never adds
+# columns to a table that's already there. There's no Alembic in this project
+# (see CLAUDE.md), so new columns on an existing table need this tiny manual
+# migration instead of "just delete devgym.db", which would wipe production.
+# Safe to run on every startup: ADD COLUMN is a no-op error we just swallow if
+# the column is already there. (table, column, type) — the DEFAULT in the type
+# string backfills existing rows, e.g. every pre-existing user starts unverified.
+_COLUMN_MIGRATIONS = [
+    ("projects", "discord_voice_channel_id", "VARCHAR"),
+    ("projects", "discord_voice_invite_url", "VARCHAR"),
+    ("users", "email_verified", "BOOLEAN DEFAULT 0"),
+    ("users", "email_verification_sent_at", "DATETIME"),
+]
+with engine.connect() as _conn:
+    for _table, _column, _type in _COLUMN_MIGRATIONS:
+        try:
+            _conn.exec_driver_sql(f"ALTER TABLE {_table} ADD COLUMN {_column} {_type}")
+            _conn.commit()
+        except Exception:
+            pass  # column already exists
+
 app = FastAPI(title="ErNord API")
 
 # Per-IP rate limiting for the auth-adjacent endpoints most exposed to brute-force /
@@ -31,6 +52,22 @@ app = FastAPI(title="ErNord API")
 limiter = Limiter(key_func=get_remote_address)
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+
+# Per-email cooldown for /forgot-password, on top of the per-IP limiter above —
+# see the comment in forgot_password() for why both are needed. In-memory and
+# process-local, same as slowapi's default storage, so this has the same
+# reset-on-restart / single-instance caveat as the limiter above; fine at this
+# project's current scale (see CLAUDE.md — no deployment yet).
+_last_reset_request_at: dict = {}
+_RESET_EMAIL_COOLDOWN = timedelta(hours=1)
+
+# Same per-email cooldown idea as above, for /resend-verification-email. Shorter
+# than the password-reset one: a user got blocked at login specifically because
+# they have no working verification email yet, so they need to be able to ask
+# for a fresh copy (spam folder, fat-fingered first attempt, expired 24h token)
+# without waiting an hour — the per-IP limiter below still bounds raw spam volume.
+_last_verification_request_at: dict = {}
+_VERIFICATION_EMAIL_COOLDOWN = timedelta(minutes=2)
 
 app.add_middleware(
     CORSMiddleware,
@@ -66,6 +103,20 @@ def get_current_user(authorization: str = Header(None), db: Session = Depends(ge
         raise HTTPException(status_code=401, detail="User not found")
 
     return user
+
+
+def require_verified_email(user: models.User) -> None:
+    """Gate for the platform's real actions (publishing a project, applying to
+    one) — call this after get_current_user in any route that should be
+    unavailable to an unverified account. Unlike login, which now lets
+    unverified accounts in (see login()), these are the actions that would
+    actually let someone make use of an email address they don't own, so this
+    is where verification needs to be enforced instead."""
+    if not user.email_verified:
+        raise HTTPException(
+            status_code=403,
+            detail="Please verify your email address before doing this. Check your inbox for the confirmation link, or resend it from your account.",
+        )
 
 
 # Simple, hardcoded gate for the one admin action this MVP has (approving recruiter
@@ -116,6 +167,48 @@ def is_project_owner_or_admin(project: "models.Project", user: models.User) -> b
     return project.owner_id == user.id or user.email == ADMIN_EMAIL
 
 
+def _grant_discord_room_access(
+    discord_channel_id: Optional[str], discord_voice_channel_id: Optional[str], discord_id: str
+) -> None:
+    """Retroactively grants a user view/participate access on a project's
+    already-created Discord channel(s). Takes plain channel IDs rather than a
+    Project ORM object — same reason every other background_tasks.add_task call in
+    this file passes plain values instead of ORM objects: the DB session backing
+    them is gone by the time a background task actually runs.
+
+    create_team_channel/create_team_voice_channel only set channel permission
+    overwrites once, for whoever was on the team (and had discord_id set) at
+    room-creation time. Anyone who joins the team afterward, or connects Discord
+    afterward, never gets added to that list — @everyone is denied view_channel on
+    these private rooms, so such a person has no permission to see the channel at
+    all. The project's discord_invite_url still gets shown/sent to them (the room
+    does exist), and clicking it does add them to the shared guild, but since they
+    can't see the specific project channel, Discord's client drops them into
+    whatever channel they *can* see instead — usually a general/default one. Call
+    this whenever someone gains team membership on, or a discord_id while already
+    on, a project that already has a room, to grant them the same access
+    room-creation would have given them. Best-effort: a Discord hiccup here
+    shouldn't block accepting an application or connecting a Discord account.
+    """
+    if discord_channel_id:
+        try:
+            discord_utils.grant_channel_access(
+                discord_channel_id, discord_id,
+                discord_utils.PERMISSION_VIEW_CHANNEL | discord_utils.PERMISSION_SEND_MESSAGES,
+            )
+        except Exception as exc:
+            print(f"[_grant_discord_room_access] Failed to grant text channel access to {discord_id}: {exc}")
+
+    if discord_voice_channel_id:
+        try:
+            discord_utils.grant_channel_access(
+                discord_voice_channel_id, discord_id,
+                discord_utils.PERMISSION_VIEW_CHANNEL | discord_utils.PERMISSION_CONNECT | discord_utils.PERMISSION_SPEAK,
+            )
+        except Exception as exc:
+            print(f"[_grant_discord_room_access] Failed to grant voice channel access to {discord_id}: {exc}")
+
+
 @app.get("/")
 def read_root():
     return {"message": "ErNord API is running"}
@@ -134,12 +227,62 @@ def get_platform_stats(db: Session = Depends(get_db)):
 
 # ---------- Users ----------
 
+def _stale_unverified_signup_is_safe_to_replace(existing: models.User, db: Session) -> bool:
+    """True if `existing` is an abandoned, never-verified signup that's safe to
+    delete so a new registration can reuse its email address.
+
+    Without this, someone signing up with an email they don't own (typo'd or
+    someone else's) and never confirming it permanently squats that address —
+    the real owner would get "already registered" forever and could never sign
+    up themselves. Two conditions must both hold before we recycle it:
+
+    - Stale: the verification email sent at signup (or last resend) is past its
+      EMAIL_VERIFICATION_EXPIRE_MINUTES window, so the link that would have
+      verified it no longer works anyway — there's no live in-flight attempt
+      being clobbered by deleting the row out from under it.
+    - Unused: /login refuses unverified accounts (see login()), so a legitimate
+      user couldn't have done anything through normal use of this account. But
+      per CLAUDE.md, ownership isn't enforced on write endpoints — an
+      unauthenticated caller could still have pointed one at this user's id
+      (e.g. as owner_id) regardless of whether anyone ever logged in as them.
+      So this checks for that explicitly rather than assuming "unverified"
+      implies "untouched".
+    """
+    if existing.email_verified:
+        return False
+
+    sent_at = existing.email_verification_sent_at
+    if sent_at and datetime.utcnow() - sent_at < timedelta(minutes=auth.EMAIL_VERIFICATION_EXPIRE_MINUTES):
+        return False  # still within its window — a real verification click could still land
+
+    uid = existing.id
+    has_activity = any([
+        db.query(models.Project).filter(models.Project.owner_id == uid).first(),
+        db.query(models.Application).filter(models.Application.user_id == uid).first(),
+        db.query(models.TeamMember).filter(models.TeamMember.user_id == uid).first(),
+        db.query(models.TeamMessage).filter(
+            or_(models.TeamMessage.from_user_id == uid, models.TeamMessage.to_user_id == uid)
+        ).first(),
+        db.query(models.WorkExperience).filter(models.WorkExperience.user_id == uid).first(),
+        db.query(models.Education).filter(models.Education.user_id == uid).first(),
+        db.query(models.ProjectComment).filter(models.ProjectComment.user_id == uid).first(),
+        db.query(models.Feedback).filter(
+            or_(models.Feedback.from_user_id == uid, models.Feedback.to_user_id == uid)
+        ).first(),
+    ])
+    return not has_activity
+
+
 @app.post("/users", response_model=schemas.UserOut)
 @limiter.limit("5/hour")
-def create_user(request: Request, user: schemas.UserCreate, db: Session = Depends(get_db)):
+def create_user(request: Request, user: schemas.UserCreate, background_tasks: BackgroundTasks, db: Session = Depends(get_db)):
     existing = db.query(models.User).filter(models.User.email == user.email).first()
     if existing:
-        raise HTTPException(status_code=400, detail="This email is already registered")
+        if _stale_unverified_signup_is_safe_to_replace(existing, db):
+            db.delete(existing)
+            db.commit()
+        else:
+            raise HTTPException(status_code=400, detail="This email is already registered")
 
     account_type = user.account_type or models.AccountType.developer
     new_user = models.User(
@@ -160,10 +303,22 @@ def create_user(request: Request, user: schemas.UserCreate, db: Session = Depend
         # a recruiter signup never accidentally gets search access before manual review.
         recruiter_approved=False,
         company_name=user.company_name if account_type == models.AccountType.recruiter else None,
+        email_verified=False,
+        email_verification_sent_at=datetime.utcnow(),
     )
     db.add(new_user)
     db.commit()
     db.refresh(new_user)
+
+    verification_token = auth.create_email_verification_token(new_user.id)
+    background_tasks.add_task(
+        _safe_send_email,
+        "create_user_verification",
+        email_utils.send_verification_email,
+        new_user.email,
+        verification_token,
+    )
+
     return new_user
 
 
@@ -311,6 +466,7 @@ def get_user_profile(user_id: str, db: Session = Depends(get_db)):
         "company_name": user.company_name,
         "recruiter_approved": user.recruiter_approved,
         "visible_to_recruiters": user.visible_to_recruiters,
+        "email_verified": user.email_verified,
         "owned_projects": [
             {"id": p.id, "title": p.title, "status": p.status} for p in owned_projects
         ],
@@ -788,6 +944,8 @@ def create_project(
     current_user: models.User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
+    require_verified_email(current_user)
+
     active_project_count = (
         db.query(models.Project)
         .filter(
@@ -993,21 +1151,29 @@ def create_discord_room(
     not_connected_users = [u for u in relevant_users if not u.discord_id]
 
     channel_name = discord_utils.slugify_channel_name(project.title)
+    voice_channel_name = discord_utils.slugify_voice_channel_name(project.title)
+    connected_discord_ids = [u.discord_id for u in connected_users]
 
     try:
-        channel_id = discord_utils.create_team_channel(channel_name, [u.discord_id for u in connected_users])
+        channel_id = discord_utils.create_team_channel(channel_name, connected_discord_ids)
         invite_url = discord_utils.create_invite(channel_id)
+        voice_channel_id = discord_utils.create_team_voice_channel(voice_channel_name, connected_discord_ids)
+        voice_invite_url = discord_utils.create_invite(voice_channel_id)
     except Exception as exc:
         print(f"[create_discord_room] Failed to create Discord channel: {exc}")
         raise HTTPException(status_code=502, detail="Could not create Discord channel. Please try again later.")
 
     project.discord_channel_id = channel_id
     project.discord_invite_url = invite_url
+    project.discord_voice_channel_id = voice_channel_id
+    project.discord_voice_invite_url = voice_invite_url
     db.commit()
 
     return {
         "channel_id": channel_id,
         "invite_url": invite_url,
+        "voice_channel_id": voice_channel_id,
+        "voice_invite_url": voice_invite_url,
         "not_connected": [
             {"id": u.id, "full_name": u.full_name, "email": u.email} for u in not_connected_users
         ],
@@ -1190,6 +1356,8 @@ def create_application(
     current_user: models.User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
+    require_verified_email(current_user)
+
     position = db.query(models.Position).filter(models.Position.id == application.position_id).first()
     if not position:
         raise HTTPException(status_code=404, detail="Position not found")
@@ -1269,6 +1437,19 @@ def accept_application(
             role_name=position.role_name,
             project_id=project.id,
         )
+
+        # If the Discord room was already created before this person joined the
+        # team, they were never added to its channel permission overwrites — see
+        # _grant_discord_room_access for why that breaks their invite link.
+        # Backgrounded like the email above: it's an external API call the accept
+        # response shouldn't have to wait on.
+        if applicant.discord_id:
+            background_tasks.add_task(
+                _grant_discord_room_access,
+                project.discord_channel_id,
+                project.discord_voice_channel_id,
+                applicant.discord_id,
+            )
 
     # Once this acceptance leaves no open positions, the team is complete — notify
     # everyone currently active on it (including the member just accepted above).
@@ -1764,8 +1945,63 @@ def login(request: Request, email: str, password: str, db: Session = Depends(get
     if not user or not auth.verify_password(password, user.password_hash):
         raise HTTPException(status_code=401, detail="Incorrect email or password")
 
+    # Unverified accounts CAN log in — blocking login entirely locks a real user
+    # out of a working account over a spam-filtered or fat-fingered verification
+    # email, with no way back in except that one email. What actually needs to be
+    # unverified-gated is the platform's real actions (creating a project, applying
+    # to one — see the email_verified checks in create_project/create_application),
+    # not account access. The frontend shows a persistent "verify your email"
+    # banner off of the email_verified flag returned below instead.
     token = auth.create_access_token(data={"sub": user.id})
-    return {"access_token": token, "token_type": "bearer", "user_id": user.id}
+    return {
+        "access_token": token,
+        "token_type": "bearer",
+        "user_id": user.id,
+        "email_verified": user.email_verified,
+    }
+
+
+@app.get("/verify-email")
+def verify_email(token: str, db: Session = Depends(get_db)):
+    user_id = auth.verify_email_verification_token(token)
+    if not user_id:
+        raise HTTPException(status_code=400, detail="Invalid or expired verification link")
+
+    user = db.query(models.User).filter(models.User.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=400, detail="Invalid or expired verification link")
+
+    user.email_verified = True
+    db.commit()
+    return {"message": "Email verified successfully"}
+
+
+@app.post("/resend-verification-email")
+@limiter.limit("5/hour")
+def resend_verification_email(
+    request: Request, payload: schemas.ResendVerificationRequest, background_tasks: BackgroundTasks, db: Session = Depends(get_db)
+):
+    user = db.query(models.User).filter(models.User.email == payload.email).first()
+
+    # Same generic-response shape as /forgot-password, and for the same reason —
+    # this endpoint must not reveal whether an email is registered.
+    if user and not user.email_verified:
+        now = datetime.utcnow()
+        last_sent = _last_verification_request_at.get(user.email)
+        if not last_sent or now - last_sent >= _VERIFICATION_EMAIL_COOLDOWN:
+            _last_verification_request_at[user.email] = now
+            user.email_verification_sent_at = now
+            db.commit()
+            verification_token = auth.create_email_verification_token(user.id)
+            background_tasks.add_task(
+                _safe_send_email,
+                "resend_verification_email",
+                email_utils.send_verification_email,
+                user.email,
+                verification_token,
+            )
+
+    return {"message": "If this email is registered and not yet verified, a confirmation link has been sent."}
 
 
 @app.post("/forgot-password")
@@ -1776,11 +2012,20 @@ def forgot_password(request: Request, payload: schemas.ForgotPasswordRequest, db
     # Always return the same message whether or not the email is registered,
     # so this endpoint can't be used to enumerate accounts.
     if user:
-        token = auth.create_password_reset_token(user.id)
-        try:
-            email_utils.send_password_reset_email(user.email, token)
-        except Exception as exc:
-            print(f"[forgot-password] Failed to send reset email to {user.email}: {exc}")
+        now = datetime.utcnow()
+        last_sent = _last_reset_request_at.get(user.email)
+        # The @limiter.limit above only bounds a single IP — an attacker rotating
+        # IPs (or a botnet) could still spam one victim's inbox with reset emails
+        # forever, since that limiter never looks at *which* email is targeted.
+        # This adds the per-email cooldown the IP limit can't provide: at most one
+        # reset email per address per hour, regardless of how many IPs ask for it.
+        if not last_sent or now - last_sent >= _RESET_EMAIL_COOLDOWN:
+            _last_reset_request_at[user.email] = now
+            token = auth.create_password_reset_token(user.id)
+            try:
+                email_utils.send_password_reset_email(user.email, token)
+            except Exception as exc:
+                print(f"[forgot-password] Failed to send reset email to {user.email}: {exc}")
 
     return {"message": "If this email is registered, a password reset link has been sent."}
 
@@ -1856,6 +2101,7 @@ def discord_connect(current_user: models.User = Depends(get_current_user)):
 @app.post("/discord/callback")
 def discord_callback(
     payload: schemas.DiscordCallbackRequest,
+    background_tasks: BackgroundTasks,
     current_user: models.User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
@@ -1872,6 +2118,29 @@ def discord_callback(
     current_user.discord_id = discord_id
     db.commit()
     db.refresh(current_user)
+
+    # Mirror image of the accept_application case: this person may already be on
+    # (or own) projects whose Discord room was created before they connected
+    # Discord, so they were never added to those channels' permission overwrites
+    # either. Grant access on every such room now — see _grant_discord_room_access.
+    member_project_ids = {
+        m.project_id for m in db.query(models.TeamMember).filter(
+            models.TeamMember.user_id == current_user.id,
+            models.TeamMember.left_at.is_(None),
+        ).all()
+    }
+    owned_project_ids = {
+        p.id for p in db.query(models.Project).filter(models.Project.owner_id == current_user.id).all()
+    }
+    relevant_projects = db.query(models.Project).filter(
+        models.Project.id.in_(member_project_ids | owned_project_ids)
+    ).all()
+    for proj in relevant_projects:
+        if proj.discord_channel_id or proj.discord_voice_channel_id:
+            background_tasks.add_task(
+                _grant_discord_room_access, proj.discord_channel_id, proj.discord_voice_channel_id, discord_id
+            )
+
     return {"discord_id": current_user.discord_id}
 
 

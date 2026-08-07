@@ -66,6 +66,13 @@ class User(Base):
     id = Column(String, primary_key=True, default=generate_uuid)
     email = Column(String, unique=True, nullable=False, index=True)
     password_hash = Column(String, nullable=False)
+    email_verified = Column(Boolean, default=False, nullable=False)
+    # When the currently-outstanding verification email was sent (set at signup,
+    # refreshed on /resend-verification-email). Lets create_user() tell an actually
+    # stale, never-verified signup (safe to recycle — see below) apart from one
+    # that's still within its window, without depending on the in-memory resend
+    # cooldown dict, which doesn't survive a restart and isn't keyed for this.
+    email_verification_sent_at = Column(DateTime, nullable=True)
     full_name = Column(String)
     bio = Column(Text)
     skills = Column(JSON, default=list)
@@ -104,6 +111,8 @@ class Project(Base):
     completion_summary = Column(Text, nullable=True)
     discord_channel_id = Column(String, nullable=True)
     discord_invite_url = Column(String, nullable=True)
+    discord_voice_channel_id = Column(String, nullable=True)
+    discord_voice_invite_url = Column(String, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
 
     owner = relationship("User", back_populates="projects")
